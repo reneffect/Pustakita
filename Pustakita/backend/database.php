@@ -11,6 +11,3 @@ if (!$koneksi) {
 }
 
 mysql_set_charset($koneksi, 'utf8');
-
-$conn = $koneksi;
-?>
