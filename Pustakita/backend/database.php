@@ -1,13 +1,12 @@
 <?php
-$host = 'localhost';
-$username = 'root';
-$password = '';
-$database = 'pustakita_db';
+$host = "localhost";
+$user = "root";
+$password = "";
+$dbname = "pustakita_db"; // ganti dengan nama database kamu
 
-$koneksi - mysqli_connect($host, $username, $password, $database);
+$koneksi = new mysqli($host, $user, $password, $dbname);
 
-if (!$koneksi) {
-    die("conncetion failed:" . mysqli_connect_error());
+if ($koneksi->connect_error) {
+    die("Koneksi gagal: " . $koneksi->connect_error);
 }
-
-mysql_set_charset($koneksi, 'utf8');
+?>
