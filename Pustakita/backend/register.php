@@ -44,7 +44,7 @@ $koneksi->close();
     <div class="flex items-center justify-center h-screen">
         <from action="homepage.php" method="POST" class="bg-gray-100 p-6 rounded shadow-md w-80">
             <fieldset>
-                <legend
+                <legend class="text-center mt-10"></legend>
             </fiedset>
     </div>
     
