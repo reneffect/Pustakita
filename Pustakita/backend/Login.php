@@ -38,7 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body class="bg-white">
     <div class="flex justify-center items-center h-screen">
-        <form action="Login.php" method="POST" class="bg-gray-100 p-6 rounded shadow-md w-80">
+        <form action="homepage.php" method="POST" class="bg-gray-100 p-6 rounded shadow-md w-80">
             <fieldset>
                 <legend class="text-lg font-bold text-center mb-2">Pustakakita</legend>
                 <p class="text-center text-sm mb-4">Sistem manajemen perpustakaan SMKN 6 MALANG</p>

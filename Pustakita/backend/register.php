@@ -36,9 +36,17 @@ $koneksi->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="tampilan.css">
     <title>Document</title>
 </head>
-<body>
+<body class="bg-white">
+    <div class="flex items-center justify-center h-screen">
+        <from action="homepage.php" method="POST" class="bg-gray-100 p-6 rounded shadow-md w-80">
+            <fieldset>
+                <legend
+            </fiedset>
+    </div>
     
 </body>
 </html>
