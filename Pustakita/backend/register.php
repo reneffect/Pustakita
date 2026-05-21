@@ -55,6 +55,28 @@ $koneksi->close();
                     <label for="username" class="block text-sm font-medium">Username</label>
                     <input type="text" id="username" name="username" class="w-full p-2border rounded" required>
                 </div>
+
+                <div class="mb-4">
+                    <label for="Email" class="block text-sm font-medium">Email</label>
+                    <input type="email" id="Email" name="email" class="w-full p-2border rounded" required>
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="black text-sm font-medium">password</div>
+                    <input type="password" id="password" name="password" class="w-full p-2border rounded" required>
+                </div>
+
+                <div class="mb-4">
+                    <label for="No Handphone" class="black text-sm font-medium">No Handphone</label>
+                    <input type="number" id="No Handphone" name="No Handphone" class="w-full p-2border rounded" required>
+                </div>
+
+                <div class="mb-4">
+                    <label for="Alamat" class="black text-sm font-medium">Alamat</label>
+                    <textarea id="alamat" name="alamat" class="w-full p-2border rounded" required></textarea>
+                </div>
+
+                <button type="submit" class="bg-blue-900 text-white w-full py-2 rounded hovering:bg-blue-600">Masuk</button>
             </fieldset>
         </form>
     </div>
