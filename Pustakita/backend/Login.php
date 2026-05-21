@@ -1,7 +1,7 @@
 <?php
 include 'database.php';
 session_start();
-//OOP Login page
+
 class User {
     private $db;
 
@@ -31,14 +31,12 @@ class User {
     }
 }
 
-// Inisialisasi
 $user = new User($koneksi);
 $error_message = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = mysqli_real_escape_string($koneksi, $_POST['username']);
     $password = $_POST['password'];
-
     $error_message = $user->login($username, $password);
 }
 ?>
@@ -48,7 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/Pustakita_upk_team.1/Pustakita/style css/tampilan.css">
+    <link rel="stylesheet" href="/Pustakita_upk_team.1/Pustakita/style_css/tampilan.css">
     <title>Login - Pustakakita</title>
 </head>
 <body class="bg-white">
@@ -64,24 +62,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 <div class="mb-4">
                     <label for="username" class="block text-sm font-medium">Username</label>
-                    <input type="text" id="username" name="username" placeholder="Username" class="w-full p-2 border rounded" required>
+                    <input type="text" id="username" name="username" placeholder="Masukkan username" class="w-full p-2 border rounded" required>
                 </div>
 
                 <div class="mb-4">
                     <label for="password" class="block text-sm font-medium">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Password" class="w-full p-2 border rounded" required>
+                    <input type="password" id="password" name="password" placeholder="Masukkan password" class="w-full p-2 border rounded" required>
                 </div>
 
-                <button type="submit" class="bg-blue-900 text-white w-full py-2 rounded hover:bg-blue-600">Login</button>
+                <button type="submit" class="bg-blue-900 text-white w-full py-2 rounded hover:bg-blue-600 mb-3">Masuk</button>
 
-                <div class="mb-4">
-                    <p class="text-center text-sm mb-4">Belum punya akun?</p>
-                </div>
-
-                <button type="button" class="bg-blue-500 text-white w-full py-2 rounded hover:bg-blue-600" onclick="window.location.href='register.php'">Register</button>
+                <p class="text-center text-sm mb-2">Belum punya akun?</p>
+                <button type="button" onclick="window.location.href='register.php'" class="bg-blue-500 text-white w-full py-2 rounded hover:bg-blue-400">Buat Akun Sekarang</button>
             </fieldset>
         </form>
     </div>
-    <script src="friontend_login.js"></script>
+    <script src="../frontend/friontend_login.js"></script>
 </body>
 </html>

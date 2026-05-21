@@ -1,6 +1,4 @@
 <?php
-// filepath: c:\laragon\www\Pustakita_upk_team.1\Pustakita\backend\register.php
-
 include 'database.php';
 session_start();
 
@@ -12,7 +10,6 @@ class User {
     }
 
     public function register($username, $password, $email, $phone, $address) {
-        // Periksa apakah username sudah ada
         $stmt = $this->db->prepare("SELECT id FROM user WHERE username = ?");
         $stmt->bind_param("s", $username);
         $stmt->execute();
@@ -21,10 +18,7 @@ class User {
         if ($stmt->num_rows > 0) {
             return "Username telah dipakai.";
         } else {
-            // Hash password
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-            // Masukkan data ke database
             $insert = $this->db->prepare("INSERT INTO user (username, password, email, phone, address) VALUES(?, ?, ?, ?, ?)");
             $insert->bind_param("sssss", $username, $hashed_password, $email, $phone, $address);
 
@@ -38,7 +32,6 @@ class User {
     }
 }
 
-// Inisialisasi
 $user = new User($koneksi);
 $error_message = "";
 
