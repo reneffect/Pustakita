@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PustaKita - Edit Profile</title>
+  <link rel="stylesheet" href="pustakita.css">
+  <style>
+    .edit-profile-section {
+      max-width: 980px;
+      margin: 40px auto 80px;
+      padding: 0 40px;
+    }
+    .edit-profile-card {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+      padding: 36px;
+    }
+    .edit-profile-header {
+      margin-bottom: 28px;
+    }
+    .edit-profile-header h1 {
+      font-size: 30px;
+      color: #111827;
+      margin-bottom: 10px;
+    }
+    .edit-profile-header p {
+      color: #475569;
+      line-height: 1.8;
+    }
+    .profile-form {
+      display: grid;
+      gap: 22px;
+    }
+    .profile-form label {
+      font-size: 13px;
+      color: #475569;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: inline-block;
+    }
+    .profile-form input,
+    .profile-form textarea {
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      padding: 14px 16px;
+      font-size: 14px;
+      color: #0f172a;
+      font-family: 'Poppins', sans-serif;
+      outline: none;
+    }
+    .profile-form textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .btn-save {
+      background: #4338ca;
+      color: white;
+      padding: 14px 24px;
+      border-radius: 999px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .btn-save:hover {
+      background: #4f46e5;
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .profile-avatar {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 26px;
+      flex-wrap: wrap;
+    }
+    .avatar-circle {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      font-weight: 800;
+      color: #1e3a8a;
+      box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
+    }
+    .avatar-text {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .avatar-text strong {
+      color: #111827;
+      font-size: 18px;
+    }
+    .avatar-text span {
+      color: #475569;
+    }
+    @media (max-width: 760px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-left">
+    <div class="logo">
+      <div class="logo-p">P</div>
+      <div class="logo-text">usta<span>Kita</span></div>
+    </div>
+    <div class="nav-kategori">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      Kategori
+    </div>
+    <div class="nav-search">
+      <svg width="16" height="16" fill="none" stroke="#a0aec0" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+      <input type="text" placeholder="Cari Judul Buku atau Nama Penulis">
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a href="home.html">Home</a>
+      <a href="catalog.html">Catalog</a>
+      <a href="history.html">History</a>
+      <a href="profile.html" class="active">Profil</a>
+    </div>
+    <div class="nav-cart">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+    </div>
+    <button class="btn-masuk">Masuk</button>
+    <button class="btn-login">Login</button>
+  </div>
+</nav>
+
+<div class="edit-profile-section">
+  <div class="edit-profile-card">
+    <div class="edit-profile-header">
+      <h1>Edit Profile</h1>
+      <p>Perbarui informasi profil Anda di sini. Setelah selesai, tekan Simpan untuk menyimpan perubahan.</p>
+    </div>
+
+    <div class="profile-avatar">
+      <div class="avatar-circle">IR</div>
+      <div class="avatar-text">
+        <strong>Isabella Rosalyta</strong>
+        <span>Anggota PustaKita</span>
+      </div>
+    </div>
+
+    <form class="profile-form" action="#">
+      <div class="form-grid">
+        <div>
+          <label for="name">Nama</label>
+          <input id="name" type="text" value="Isabella Rosalyta">
+        </div>
+        <div>
+          <label for="email">Email</label>
+          <input id="email" type="email" value="user@email.com">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label for="phone">No. Handphone</label>
+          <input id="phone" type="tel" value="0812xxxxxxx">
+        </div>
+        <div>
+          <label for="username">Username</label>
+          <input id="username" type="text" value="isabella123">
+        </div>
+      </div>
+      <div>
+        <label for="address">Alamat</label>
+        <textarea id="address">Jalan Merdeka No. 12, Malang</textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" type="button" onclick="location.href='profile.html'">Kembali</button>
+        <button class="btn-save" type="submit">Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-main">
+    <div class="footer-col">
+      <div class="footer-brand">
+        <div class="footer-brand-title">Pustakita</div>
+        <div class="footer-brand-tagline">Ilmu di Ujung Jari</div>
+        <p>Nikmati kemudahan membaca dan meminjam buku secara online kapan saja dan di mana saja.</p>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Jenis Buku</h4>
+      <ul>
+        <li>Cerita Rakyat</li>
+        <li>Buku paket</li>
+        <li>Novel</li>
+        <li>Kamus</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Informasi Peminjaman</h4>
+      <ul>
+        <li>Aturan</li>
+        <li>Peminjaman</li>
+      </ul>
+    </div>
+    <div class="footer-logo">
+      <div class="footer-logo-mark">
+        <div class="footer-logo-p">P</div>
+        <div class="footer-logo-text">PustaKita</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2026 PustakaKita | Teman Membaca dan Sumber Ilmu
+  </div>
+</footer>
+</body>
+</html>
