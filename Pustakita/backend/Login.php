@@ -1,8 +1,8 @@
-<?php
+<?php 
 include 'database.php';
 session_start();
 
-class User {
+class Auth {
     private $db;
 
     public function __construct($db) {
@@ -10,39 +10,46 @@ class User {
     }
 
     public function login($username, $password) {
-        // Query untuk memeriksa username
-        $stmt = $this->db->prepare("SELECT id, username, password FROM users WHERE username = ?");
+        // Cek tabel admin dulu
+        $stmt = $this->db->prepare("SELECT * FROM admin WHERE username = ?");
         $stmt->bind_param("s", $username);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $admin = $stmt->get_result()->fetch_assoc();
 
-        if ($result->num_rows > 0) {
-            $row = $result->fetch_assoc();
-            // Verifikasi password
-            if (password_verify($password, $row['password'])) {
-                $_SESSION['user_id'] = $row['id'];
-                $_SESSION['username'] = $row['username'];
-                $_SESSION['login_success'] = true; // Menandai login berhasil
-                header("Location: dashboard.php");
-                exit();
-            } else {
-                return "Password yang Anda masukkan salah.";
-            }
-        } else {
-            return "Username tidak ditemukan.";
+        if ($admin && password_verify($password, $admin['password'])) {
+            $_SESSION['role'] = 'admin';
+            $_SESSION['user_id'] = $admin['id'];
+            $_SESSION['login_success'] = true;
+            header("Location: dashboard_admin.php");
+            exit();
         }
+
+        // Cek tabel member
+        $stmt = $this->db->prepare("SELECT * FROM member WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $member = $stmt->get_result()->fetch_assoc();
+
+        if ($member && password_verify($password, $member['password'])) {
+            $_SESSION['role'] = 'member';
+            $_SESSION['user_id'] = $member['id'];
+            $_SESSION['login_success'] = true;
+            header("Location: dashboard_member.php");
+            exit();
+        }
+
+        return "Login gagal! Username atau password salah.";
     }
 }
 
-// Inisialisasi
-$user = new User($koneksi);
+$auth = new Auth($koneksi);
 $error_message = "";
 
-// Proses login
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = mysqli_real_escape_string($koneksi, $_POST['username']);
     $password = $_POST['password'];
-    $error_message = $user->login($username, $password);
+
+    $error_message = $auth->login($username, $password);
 }
 ?>
 <!DOCTYPE html>
