@@ -10,6 +10,7 @@ class User {
     }
 
     public function login($username, $password) {
+        // Query untuk memeriksa username
         $stmt = $this->db->prepare("SELECT id, username, password FROM users WHERE username = ?");
         $stmt->bind_param("s", $username);
         $stmt->execute();
@@ -17,9 +18,11 @@ class User {
 
         if ($result->num_rows > 0) {
             $row = $result->fetch_assoc();
+            // Verifikasi password
             if (password_verify($password, $row['password'])) {
                 $_SESSION['user_id'] = $row['id'];
                 $_SESSION['username'] = $row['username'];
+                $_SESSION['login_success'] = true; // Menandai login berhasil
                 header("Location: dashboard.php");
                 exit();
             } else {
@@ -31,9 +34,11 @@ class User {
     }
 }
 
+// Inisialisasi
 $user = new User($koneksi);
 $error_message = "";
 
+// Proses login
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = mysqli_real_escape_string($koneksi, $_POST['username']);
     $password = $_POST['password'];
@@ -72,8 +77,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 <button type="submit" class="bg-blue-900 text-white w-full py-2 rounded hover:bg-blue-600 mb-3">Masuk</button>
 
-                <p class="text-center text-sm mb-2">Belum punya akun?</p>
-                <button type="button" onclick="window.location.href='register.php'" class="bg-blue-500 text-white w-full py-2 rounded hover:bg-blue-400">Buat Akun Sekarang</button>
+                <p class="text-center text-sm mb-4">Belum punya akun?</p>
+                <button type="button" class="bg-blue-500 text-white w-full py-2 rounded hover:bg-blue-600" onclick="window.location.href='register.php'">Buat Akun Sekarang</button>
             </fieldset>
         </form>
     </div>
