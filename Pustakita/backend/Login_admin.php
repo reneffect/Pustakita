@@ -9,31 +9,49 @@ class Auth {
         $this->db = $db;
     }
 
+    private function generateToken($id, $table) {
+        $token = bin2hex(random_bytes(32));
+
+        $stmt = $this->db->prepare("UPDATE $table SET session_token = ? WHERE id = ?");
+        $stmt->bind_param("si", $token, $id);
+        $stmt->execute();
+
+        return $token;
+    }
+
     public function login($username, $password) {
-        // validasi login admin
+        // Validasi login admin
         $stmt = $this->db->prepare("SELECT * FROM admin WHERE username = ?");
         $stmt->bind_param("s", $username);
         $stmt->execute();
         $admin = $stmt->get_result()->fetch_assoc();
 
         if ($admin && password_verify($password, $admin['password'])) {
-            $_SESSION['role'] = 'admin';
-            $_SESSION['user_id'] = $admin['id'];
+            $token = $this->generateToken($admin['id'], 'admin');
+
+            $_SESSION['role']          = 'admin';
+            $_SESSION['user_id']       = $admin['id'];
+            $_SESSION['token']         = $token;
             $_SESSION['login_success'] = true;
+
             header("Location: dashboard_admin.php");
             exit();
         }
 
-        // validasi login member
+        // Validasi login member
         $stmt = $this->db->prepare("SELECT * FROM member WHERE username = ?");
         $stmt->bind_param("s", $username);
         $stmt->execute();
         $member = $stmt->get_result()->fetch_assoc();
 
         if ($member && password_verify($password, $member['password'])) {
-            $_SESSION['role'] = 'member';
-            $_SESSION['user_id'] = $member['id'];
+            $token = $this->generateToken($member['id'], 'member');
+
+            $_SESSION['role']          = 'member';
+            $_SESSION['user_id']       = $member['id'];
+            $_SESSION['token']         = $token;
             $_SESSION['login_success'] = true;
+
             header("Location: dashboard_member.php");
             exit();
         }
@@ -51,6 +69,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $error_message = $auth->login($username, $password);
 }
+?>
+<!-- HTML sama seperti sebelumnya, tidak ada perubahan -->
 ?>
 <!DOCTYPE html>
 <html lang="en">
