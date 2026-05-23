@@ -5,26 +5,19 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Cek login & role
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     header("Location: Login_admin.php");
     exit();
 }
 
-// Cek session token
 class AuthCheck {
     private $db;
-
-    public function __construct($db) {
-        $this->db = $db;
-    }
-
+    public function __construct($db) { $this->db = $db; }
     public function check() {
-        $stmt = $this->db->prepare("SELECT session_token FROM admin WHERE id = ?");
+        $stmt = $this->db->prepare("SELECT session_token FROM admin WHERE id_admin = ?");
         $stmt->bind_param("i", $_SESSION['user_id']);
         $stmt->execute();
         $admin = $stmt->get_result()->fetch_assoc();
-
         if (!$admin || $admin['session_token'] !== $_SESSION['token']) {
             session_destroy();
             header("Location: Login_admin.php?pesan=sesi_digantikan");
@@ -33,204 +26,197 @@ class AuthCheck {
     }
 }
 
-// Ambil data statistik
 class Dashboard {
     private $db;
-
-    public function __construct($db) {
-        $this->db = $db;
-    }
+    public function __construct($db) { $this->db = $db; }
 
     public function getTotalBuku() {
         $result = $this->db->query("SELECT COUNT(*) as total FROM buku");
         return $result->fetch_assoc()['total'];
     }
-
     public function getTotalMember() {
-        $result = $this->db->query("SELECT COUNT(*) as total FROM members");
+        $result = $this->db->query("SELECT COUNT(*) as total FROM siswa");
         return $result->fetch_assoc()['total'];
     }
-
     public function getPeminjamanAktif() {
-        $result = $this->db->query("SELECT COUNT(*) as total FROM peminjaman WHERE status = 'aktif'");
+        $result = $this->db->query("SELECT COUNT(*) as total FROM peminjaman WHERE status = 'dipinjam'");
         return $result->fetch_assoc()['total'];
     }
-
     public function getAktivitasTerbaru() {
         return $this->db->query("
-            SELECT p.id, m.nama, b.judul, p.tanggal_pinjam 
+            SELECT p.id_peminjaman, m.username, b.judul, p.tgl_pinjam
             FROM peminjaman p
-            JOIN members m ON p.member_id = m.id
-            JOIN buku b ON p.buku_id = b.id
-            ORDER BY p.tanggal_pinjam DESC 
+            JOIN siswa m ON p.siswa_id = m.id_siswa
+            JOIN buku b ON p.buku_id = b.id_buku
+            ORDER BY p.tgl_pinjam DESC
             LIMIT 5
         ");
     }
-
     public function getBukuPopuler() {
         return $this->db->query("
-            SELECT b.judul, b.pengarang, COUNT(p.id) as dipinjam
+            SELECT b.judul, b.penulis, COUNT(p.id_peminjaman) as dipinjam
             FROM peminjaman p
-            JOIN buku b ON p.buku_id = b.id
-            GROUP BY b.id
-            ORDER BY dipinjam DESC 
+            JOIN buku b ON p.buku_id = b.id_buku
+            GROUP BY b.id_buku, b.judul, b.penulis
+            ORDER BY dipinjam DESC
             LIMIT 4
         ");
     }
 }
 
-// Jalankan
 $authCheck = new AuthCheck($koneksi);
 $authCheck->check();
 
-$dashboard = new Dashboard($koneksi);
+$dashboard        = new Dashboard($koneksi);
 $total_buku       = $dashboard->getTotalBuku();
 $total_member     = $dashboard->getTotalMember();
 $peminjaman_aktif = $dashboard->getPeminjamanAktif();
 $aktivitas        = $dashboard->getAktivitasTerbaru();
 $populer          = $dashboard->getBukuPopuler();
-?>
 
+// Hitung selisih hari untuk label tanggal
+function tglLabel($tgl) {
+    $diff = (int) floor((time() - strtotime($tgl)) / 86400);
+    if ($diff === 0) return 'Hari Ini';
+    if ($diff === 1) return 'Kemarin';
+    return $diff . ' Hari lalu';
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/Pustakita_upk_team.1/Pustakita/style_css/tampilan.css">
+    <link rel="stylesheet" herf="/Pustakita_upk_team.1/Pustakita/style_css/dashboard_admin.css">
     <title>Dashboard Admin - PustaKita</title>
 </head>
-<body class="bg-gray-100">
+<body>
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-white h-screen fixed shadow-md flex flex-col">
-        <div class="p-6 flex items-center gap-2">
-            <svg viewBox="0 0 24 24" width="24" height="24" stroke="#04005c" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-            <span class="font-bold text-lg text-[#04005c]"><span class="text-blue-900">P</span>ustaKita</span>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo"><span>P</span>ustaKita</div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <?php
+        $menus = [
+            ['href' => 'dashboard_admin.php', 'label' => 'Dashboard',          'icon' => '⊞'],
+            ['href' => 'buku.php',            'label' => 'Pengelolaan Buku',    'icon' => '📖'],
+            ['href' => 'member.php',          'label' => 'Pengelolaan Member',  'icon' => '👤'],
+            ['href' => 'peminjaman.php',      'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
+            ['href' => 'pengembalian.php',    'label' => 'Kelola Pengembalian', 'icon' => '↩'],
+            ['href' => 'denda.php',           'label' => 'Kelola Denda',        'icon' => '💰'],
+            ['href' => 'laporan.php',         'label' => 'Laporan',             'icon' => '📊'],
+        ];
+        foreach ($menus as $menu):
+            $active = basename($_SERVER['PHP_SELF']) === $menu['href'] ? 'active' : '';
+        ?>
+        <a href="<?= $menu['href'] ?>" class="nav-item <?= $active ?>">
+            <span class="nav-icon"><?= $menu['icon'] ?></span>
+            <?= $menu['label'] ?>
+        </a>
+        <?php endforeach; ?>
+    </nav>
+
+    <div class="sidebar-footer">
+        <a href="logout.php" class="logout-item">
+            <span class="nav-icon">↗</span> Log Out
+        </a>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-title">Dashboard</div>
+        <div class="topbar-user">
+            <div class="topbar-avatar"><?= strtoupper(substr($_SESSION['username'], 0, 1)) ?></div>
+            <span class="topbar-username"><?= htmlspecialchars($_SESSION['username']) ?></span>
         </div>
+    </div>
 
-        <nav class="flex-1 px-4 space-y-1">
-            <?php
-            $menus = [
-                ['href' => 'dashboard_admin.php', 'label' => 'Dashboard', 'icon' => '🏠'],
-                ['href' => 'buku.php',            'label' => 'Pengelolaan Buku', 'icon' => '📖'],
-                ['href' => 'member.php',          'label' => 'Pengelolaan Member', 'icon' => '👤'],
-                ['href' => 'peminjaman.php',      'label' => 'Kelola Peminjaman', 'icon' => '🕐'],
-                ['href' => 'pengembalian.php',    'label' => 'Kelola Pengembalian', 'icon' => '↩️'],
-                ['href' => 'denda.php',           'label' => 'Kelola Denda', 'icon' => '💰'],
-                ['href' => 'laporan.php',         'label' => 'Laporan', 'icon' => '📊'],
-            ];
-            foreach ($menus as $menu):
-                $active = basename($_SERVER['PHP_SELF']) === $menu['href']
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-gray-600 hover:bg-indigo-50';
-            ?>
-            <a href="<?= $menu['href'] ?>" class="flex items-center gap-3 px-4 py-2 rounded-lg <?= $active ?>">
-                <span><?= $menu['icon'] ?></span>
-                <span class="text-sm"><?= $menu['label'] ?></span>
-            </a>
-            <?php endforeach; ?>
-        </nav>
+    <!-- Content -->
+    <div class="content">
 
-        <div class="p-4 border-t">
-            <div class="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 mb-2">
-                👤 <span><?= htmlspecialchars($_SESSION['username']) ?></span>
+        <div class="greeting-title">Halo, <?= htmlspecialchars(ucfirst($_SESSION['username'])) ?>!</div>
+        <div class="greeting-sub">Welcome Admin! Silakan kelola dan pantau aktivitas dengan bijak.</div>
+
+        <!-- Stat Cards -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-card-label">Total Buku</div>
+                <div class="stat-card-value"><?= number_format($total_buku) ?></div>
             </div>
-            <a href="logout.php" class="flex items-center gap-3 px-4 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm">
-                🚪 Log Out
-            </a>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="ml-64 p-8">
-
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">Dashboard</h1>
-            <div class="flex items-center gap-2 text-gray-600 text-sm">
-                👤 <span><?= htmlspecialchars($_SESSION['username']) ?></span>
+            <div class="stat-card">
+                <div class="stat-card-label">Peminjaman Aktif</div>
+                <div class="stat-card-value"><?= number_format($peminjaman_aktif) ?></div>
             </div>
-        </div>
-
-        <!-- Greeting -->
-        <p class="text-xl font-semibold mb-1">Halo, <?= htmlspecialchars($_SESSION['username']) ?>!</p>
-        <p class="text-gray-500 mb-6 text-sm">Silakan kelola dan pantau aktivitas dengan bijak.</p>
-
-        <!-- Statistik -->
-        <div class="grid grid-cols-3 gap-4 mb-8">
-            <div class="bg-indigo-600 text-white rounded-xl p-5">
-                <p class="text-sm mb-1">Total Buku</p>
-                <p class="text-3xl font-bold"><?= number_format($total_buku) ?></p>
-            </div>
-            <div class="bg-indigo-600 text-white rounded-xl p-5">
-                <p class="text-sm mb-1">Peminjaman Aktif</p>
-                <p class="text-3xl font-bold"><?= number_format($peminjaman_aktif) ?></p>
-            </div>
-            <div class="bg-indigo-600 text-white rounded-xl p-5">
-                <p class="text-sm mb-1">Total Member</p>
-                <p class="text-3xl font-bold"><?= number_format($total_member) ?></p>
+            <div class="stat-card">
+                <div class="stat-card-label">Total Member</div>
+                <div class="stat-card-value"><?= number_format($total_member) ?></div>
             </div>
         </div>
 
         <!-- Aktivitas Terbaru -->
-        <div class="bg-white rounded-xl p-6 mb-6 shadow-sm">
-            <h2 class="font-semibold text-lg mb-4">Aktivitas Terbaru</h2>
-            <table class="w-full text-sm">
-                <tbody>
-                <?php if ($aktivitas && $aktivitas->num_rows > 0): ?>
-                    <?php while ($row = $aktivitas->fetch_assoc()): ?>
-                    <tr class="border-b last:border-0">
-                        <td class="py-2 text-gray-500">Peminjaman #<?= str_pad($row['id'], 3, '0', STR_PAD_LEFT) ?></td>
-                        <td class="py-2 text-gray-400">—</td>
-                        <td class="py-2"><?= htmlspecialchars($row['judul']) ?></td>
-                        <td class="py-2 text-right text-gray-400"><?= date('d M Y', strtotime($row['tanggal_pinjam'])) ?></td>
-                    </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="4" class="py-4 text-center text-gray-400">Belum ada aktivitas</td>
-                    </tr>
-                <?php endif; ?>
-                </tbody>
-            </table>
+        <div class="section-title">Aktivitas Terbaru</div>
+        <div class="card">
+            <div class="card-inner">
+                <table class="act-table">
+                    <tbody>
+                    <?php if ($aktivitas && $aktivitas->num_rows > 0): ?>
+                        <?php while ($row = $aktivitas->fetch_assoc()): ?>
+                        <tr>
+                            <td class="act-id">Peminjaman #<?= str_pad($row['id_peminjaman'], 3, '0', STR_PAD_LEFT) ?></td>
+                            <td class="act-sep">—</td>
+                            <td class="act-judul"><?= htmlspecialchars($row['judul']) ?></td>
+                            <td class="act-date"><?= tglLabel($row['tgl_pinjam']) ?></td>
+                        </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr><td colspan="4" style="padding:28px 0;text-align:center;color:#bbb;font-size:.82rem">Belum ada aktivitas</td></tr>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Buku Populer -->
-        <div class="bg-white rounded-xl p-6 shadow-sm">
-            <h2 class="font-semibold text-lg mb-4">Buku Populer Minggu Ini</h2>
-            <table class="w-full text-sm">
-                <thead class="text-gray-400 border-b">
-                    <tr>
-                        <th class="text-left py-2">#</th>
-                        <th class="text-left py-2">Judul</th>
-                        <th class="text-left py-2">Pengarang</th>
-                        <th class="text-left py-2">Dipinjam</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php if ($populer && $populer->num_rows > 0): ?>
-                    <?php $no = 1; while ($row = $populer->fetch_assoc()): ?>
-                    <tr class="border-b last:border-0">
-                        <td class="py-2"><?= $no++ ?></td>
-                        <td class="py-2"><?= htmlspecialchars($row['judul']) ?></td>
-                        <td class="py-2"><?= htmlspecialchars($row['pengarang']) ?></td>
-                        <td class="py-2"><?= $row['dipinjam'] ?>x</td>
-                    </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="4" class="py-4 text-center text-gray-400">Belum ada data</td>
-                    </tr>
-                <?php endif; ?>
-                </tbody>
-            </table>
+        <div class="section-title">Buku Populer Minggu Ini</div>
+        <div class="card">
+            <div class="card-inner">
+                <table class="pop-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Judul</th>
+                            <th>Pengarang</th>
+                            <th>Dipinjam</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php if ($populer && $populer->num_rows > 0): ?>
+                        <?php $no = 1; while ($row = $populer->fetch_assoc()): ?>
+                        <tr>
+                            <td><span class="pop-num"><?= $no++ ?></span></td>
+                            <td><?= htmlspecialchars($row['judul']) ?></td>
+                            <td class="pop-penulis"><?= htmlspecialchars($row['penulis']) ?></td>
+                            <td><span class="pop-count"><?= $row['dipinjam'] ?>x</span></td>
+                        </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr class="empty-row"><td colspan="4">Belum ada data</td></tr>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-    </main>
+    </div><!-- /content -->
+</div><!-- /main -->
 
 </body>
 </html>

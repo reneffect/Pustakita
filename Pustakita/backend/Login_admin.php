@@ -1,12 +1,10 @@
 <?php 
 include 'database.php';
 
-// Cek session sebelum start untuk hindari error
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Kalau sudah login, langsung redirect
 if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
     header("Location: dashboard_admin.php");
     exit();
@@ -21,7 +19,7 @@ class Auth {
 
     private function generateToken($id) {
         $token = bin2hex(random_bytes(32));
-        $stmt = $this->db->prepare("UPDATE admin SET session_token = ? WHERE id = ?");
+        $stmt = $this->db->prepare("UPDATE admin SET session_token = ? WHERE id_admin = ?");
         $stmt->bind_param("si", $token, $id);
         $stmt->execute();
         return $token;
@@ -41,9 +39,9 @@ class Auth {
             return "Login gagal! Username atau password salah.";
         }
 
-        $token = $this->generateToken($admin['id']);
+        $token = $this->generateToken($admin['id_admin']);
         $_SESSION['role']          = 'admin';
-        $_SESSION['user_id']       = $admin['id'];
+        $_SESSION['user_id']       = $admin['id_admin'];
         $_SESSION['username']      = $admin['username'];
         $_SESSION['token']         = $token;
         $_SESSION['login_success'] = true;
@@ -65,13 +63,13 @@ class LoginPage {
 
     public function handleRequest() {
         if ($_SERVER["REQUEST_METHOD"] === "POST") {
-            // Validasi input tidak kosong
             if (empty($_POST['username']) || empty($_POST['password'])) {
                 $this->error_message = "Username dan password tidak boleh kosong.";
                 return;
             }
 
-            $username = trim(mysqli_real_escape_string($this->koneksi, $_POST['username']));
+            // Tidak perlu mysqli_real_escape_string karena sudah pakai prepared statement
+            $username = trim($_POST['username']);
             $password = $_POST['password'];
 
             $this->error_message = $this->auth->login($username, $password);
@@ -94,7 +92,6 @@ class LoginPage {
             <div class="flex justify-center items-center h-screen">
                 <div class="bg-gray-100 p-6 rounded shadow-md w-80">
 
-                    <!-- Header -->
                     <div class="flex flex-col items-center mb-4">
                         <div class="flex items-center gap-2 mb-1">
                             <svg viewBox="0 0 24 24" width="32" height="32" stroke="#04005c" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -119,8 +116,6 @@ class LoginPage {
                     <?php endif; ?>
 
                     <form action="" method="POST" id="loginForm">
-
-                        <!-- Username -->
                         <div class="mb-4">
                             <label for="username" class="block text-sm font-medium mb-1">Username</label>
                             <div class="relative">
@@ -137,7 +132,6 @@ class LoginPage {
                             </div>
                         </div>
 
-                        <!-- Password -->
                         <div class="mb-4">
                             <label for="password" class="block text-sm font-medium mb-1">Password</label>
                             <div class="relative">
@@ -164,7 +158,6 @@ class LoginPage {
                             Masuk
                         </button>
                     </form>
-
                 </div>
             </div>
             <script src="../frontend/friontend_login.js"></script>
