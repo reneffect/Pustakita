@@ -10,7 +10,7 @@ class Auth {
     }
 
     public function login($username, $password) {
-        // Cek tabel admin dulu
+        // validasi login admin
         $stmt = $this->db->prepare("SELECT * FROM admin WHERE username = ?");
         $stmt->bind_param("s", $username);
         $stmt->execute();
@@ -24,7 +24,7 @@ class Auth {
             exit();
         }
 
-        // Cek tabel member
+        // validasi login member
         $stmt = $this->db->prepare("SELECT * FROM member WHERE username = ?");
         $stmt->bind_param("s", $username);
         $stmt->execute();
@@ -82,10 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <input type="password" id="password" name="password" placeholder="Masukkan password" class="w-full p-2 border rounded" required>
                 </div>
 
-                <button type="submit" class="bg-blue-900 text-white w-full py-2 rounded hover:bg-blue-600 mb-3">Masuk</button>
-
-                <p class="text-center text-sm mb-4">Belum punya akun?</p>
-                <button type="button" class="bg-blue-500 text-white w-full py-2 rounded hover:bg-blue-600" onclick="window.location.href='register.php'">Buat Akun Sekarang</button>
+                <button type="submit" class="bg-blue-900 text-white w-full py-2 rounded hover:bg-blue-600 mb-3">Login</button>
             </fieldset>
         </form>
     </div>
