@@ -236,8 +236,8 @@ $totalNonaktif = $member->getTotalNonaktif();
                 ['href' => 'pengelolaan_buku.php', 'label' => 'Pengelolaan Buku',    'icon' => '📖'],
                 ['href' => 'pengelolaan_member.php',           'label' => 'Pengelolaan Member',  'icon' => '👤'],
                 ['href' => 'kelola_peminjaman.php',       'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
-                ['href' => 'pengembalian.php',     'label' => 'Kelola Pengembalian', 'icon' => '↩'],
-                ['href' => 'denda.php',            'label' => 'Kelola Denda',        'icon' => '💰'],
+                ['href' => 'kelola_pengembalian.php',     'label' => 'Kelola Pengembalian', 'icon' => '↩'],
+                ['href' => 'kelola_denda.php',            'label' => 'Kelola Denda',        'icon' => '💰'],
                 ['href' => 'laporan.php',          'label' => 'Laporan',              'icon' => 'ri-bar-chart-line'],
             ];
             foreach ($menus as $menu):

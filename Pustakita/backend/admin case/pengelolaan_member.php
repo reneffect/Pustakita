@@ -1,4 +1,5 @@
 <?php
+// FIX: include 'database.php' bukan '../database.php' — semua file satu folder
 include 'database.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -70,8 +71,8 @@ class Member {
     }
 }
 
-$member  = new Member($koneksi);
-$keyword = trim($_GET['cari'] ?? '');
+$member        = new Member($koneksi);
+$keyword       = trim($_GET['cari'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action     = $_POST['action'] ?? '';
@@ -100,12 +101,12 @@ if (isset($_GET['hapus'])) {
     exit();
 }
 
-$pesan        = $_GET['pesan'] ?? '';
-$daftarMember = $member->getSemuaMember($keyword);
-$editData     = isset($_GET['edit']) ? $member->getMemberById((int)$_GET['edit']) : null;
-$showTambah   = isset($_GET['tambah']);
-$totalMember  = $member->getTotalMember();
-$totalAktif   = $member->getTotalAktif();
+$pesan         = $_GET['pesan'] ?? '';
+$daftarMember  = $member->getSemuaMember($keyword);
+$editData      = isset($_GET['edit']) ? $member->getMemberById((int)$_GET['edit']) : null;
+$showTambah    = isset($_GET['tambah']);
+$totalMember   = $member->getTotalMember();
+$totalAktif    = $member->getTotalAktif();
 $totalNonaktif = $member->getTotalNonaktif();
 ?>
 <!DOCTYPE html>
@@ -200,13 +201,13 @@ $totalNonaktif = $member->getTotalNonaktif();
     <nav class="sidebar-nav">
         <?php
         $menus = [
-            ['href' => 'dashboard_admin.php',   'label' => 'Dashboard',           'icon' => '⊞'],
-            ['href' => 'pengelolaan_buku.php',  'label' => 'Pengelolaan Buku',    'icon' => '📖'],
-            ['href' => 'pengelolaan_member.php','label' => 'Pengelolaan Member',  'icon' => '👤'],
-            ['href' => 'kelola_peminjaman.php',        'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
-            ['href' => 'pengembalian.php',      'label' => 'Kelola Pengembalian', 'icon' => '↩'],
-            ['href' => 'denda.php',             'label' => 'Kelola Denda',        'icon' => '💰'],
-            ['href' => 'laporan.php',           'label' => 'Laporan',             'icon' => '📊'],
+            ['href' => 'dashboard_admin.php',    'label' => 'Dashboard',           'icon' => '⊞'],
+            ['href' => 'pengelolaan_buku.php',   'label' => 'Pengelolaan Buku',    'icon' => '📖'],
+            ['href' => 'pengelolaan_member.php', 'label' => 'Pengelolaan Member',  'icon' => '👤'],
+            ['href' => 'kelola_peminjaman.php',  'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
+            ['href' => 'pengembalian.php',       'label' => 'Kelola Pengembalian', 'icon' => '↩'],
+            ['href' => 'denda.php',              'label' => 'Kelola Denda',        'icon' => '💰'],
+            ['href' => 'laporan.php',            'label' => 'Laporan',             'icon' => '📊'],
         ];
         foreach ($menus as $menu):
             $active = basename($_SERVER['PHP_SELF']) === $menu['href'] ? 'active' : '';
@@ -218,6 +219,7 @@ $totalNonaktif = $member->getTotalNonaktif();
         <?php endforeach; ?>
     </nav>
     <div class="sidebar-footer">
+        <!-- FIX: konsisten pakai logout.php huruf kecil (bukan Logout.php) -->
         <a href="logout.php" class="logout-item">
             <span class="nav-icon">↗</span> Log Out
         </a>

@@ -184,13 +184,13 @@ $showTambah = isset($_GET['tambah']);
     <nav class="sidebar-nav">
         <?php
         $menus = [
-            ['href' => 'dashboard_admin.php',  'label' => 'Dashboard',           'icon' => '⊞'],
-            ['href' => 'pengelolaan_buku.php', 'label' => 'Pengelolaan Buku',    'icon' => '📖'],
-            ['href' => 'pengelolaan_member.php',           'label' => 'Pengelolaan Member',  'icon' => '👤'],
-            ['href' => 'kelola_peminjaman.php',       'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
-            ['href' => 'pengembalian.php',     'label' => 'Kelola Pengembalian', 'icon' => '↩'],
-            ['href' => 'denda.php',            'label' => 'Kelola Denda',        'icon' => '💰'],
-            ['href' => 'laporan.php',          'label' => 'Laporan',             'icon' => '📊'],
+            ['href' => 'dashboard_admin.php',    'label' => 'Dashboard',           'icon' => '⊞'],
+            ['href' => 'pengelolaan_buku.php',   'label' => 'Pengelolaan Buku',    'icon' => '📖'],
+            ['href' => 'pengelolaan_member.php', 'label' => 'Pengelolaan Member',  'icon' => '👤'],
+            ['href' => 'kelola_peminjaman.php',  'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
+            ['href' => 'pengembalian.php',       'label' => 'Kelola Pengembalian', 'icon' => '↩'],
+            ['href' => 'denda.php',              'label' => 'Kelola Denda',        'icon' => '💰'],
+            ['href' => 'laporan.php',            'label' => 'Laporan',             'icon' => '📊'],
         ];
         foreach ($menus as $menu):
             $active = basename($_SERVER['PHP_SELF']) === $menu['href'] ? 'active' : '';
@@ -202,6 +202,7 @@ $showTambah = isset($_GET['tambah']);
         <?php endforeach; ?>
     </nav>
     <div class="sidebar-footer">
+        <!-- FIX: konsisten pakai logout.php huruf kecil -->
         <a href="logout.php" class="logout-item">
             <span class="nav-icon">↗</span> Log Out
         </a>

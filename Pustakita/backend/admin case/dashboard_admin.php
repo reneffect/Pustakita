@@ -19,7 +19,15 @@ class AuthCheck {
         $stmt->execute();
         $admin = $stmt->get_result()->fetch_assoc();
         if (!$admin || $admin['session_token'] !== $_SESSION['token']) {
+            session_unset();
             session_destroy();
+            if (ini_get("session.use_cookies")) {
+                $params = session_get_cookie_params();
+                setcookie(session_name(), '', time() - 42000,
+                    $params["path"], $params["domain"],
+                    $params["secure"], $params["httponly"]
+                );
+            }
             header("Location: Login_admin.php?pesan=sesi_digantikan");
             exit();
         }
@@ -426,13 +434,13 @@ a { text-decoration: none; color: inherit; }
     <nav class="sidebar-nav">
         <?php
         $menus = [
-            ['href' => 'dashboard_admin.php', 'label' => 'Dashboard',          'icon' => '⊞'],
-            ['href' => 'pengelolaan_buku.php',            'label' => 'Pengelolaan Buku',    'icon' => '📖'],
-            ['href' => 'pengelolaan_member.php',          'label' => 'Pengelolaan Member',  'icon' => '👤'],
-            ['href' => 'kelola_peminjaman.php',      'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
-            ['href' => 'pengembalian.php',    'label' => 'Kelola Pengembalian', 'icon' => '↩'],
-            ['href' => 'denda.php',           'label' => 'Kelola Denda',        'icon' => '💰'],
-            ['href' => 'laporan.php',         'label' => 'Laporan',             'icon' => '📊'],
+            ['href' => 'dashboard_admin.php',    'label' => 'Dashboard',          'icon' => '⊞'],
+            ['href' => 'pengelolaan_buku.php',   'label' => 'Pengelolaan Buku',   'icon' => '📖'],
+            ['href' => 'pengelolaan_member.php', 'label' => 'Pengelolaan Member', 'icon' => '👤'],
+            ['href' => 'kelola_peminjaman.php',  'label' => 'Kelola Peminjaman',  'icon' => '🕐'],
+            ['href' => 'pengembalian.php',       'label' => 'Kelola Pengembalian','icon' => '↩'],
+            ['href' => 'denda.php',              'label' => 'Kelola Denda',       'icon' => '💰'],
+            ['href' => 'laporan.php',            'label' => 'Laporan',            'icon' => '📊'],
         ];
         foreach ($menus as $menu):
             $active = basename($_SERVER['PHP_SELF']) === $menu['href'] ? 'active' : '';
@@ -445,6 +453,7 @@ a { text-decoration: none; color: inherit; }
     </nav>
 
     <div class="sidebar-footer">
+        <!-- FIX: konsisten pakai logout.php huruf kecil -->
         <a href="logout.php" class="logout-item">
             <span class="nav-icon">↗</span> Log Out
         </a>
