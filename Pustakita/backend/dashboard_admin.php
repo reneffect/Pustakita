@@ -88,7 +88,331 @@ function tglLabel($tgl) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" herf="/Pustakita_upk_team.1/Pustakita/style_css/dashboard_admin.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f4f4f8;
+    color: #111;
+    min-height: 100vh;
+    display: flex;
+}
+
+a { text-decoration: none; color: inherit; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+    width: 220px;
+    min-height: 100vh;
+    background: #0d0d1a;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+}
+
+.sidebar-logo {
+    padding: 28px 24px 24px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.sidebar-logo .logo {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -.2px;
+}
+
+.sidebar-logo .logo span {
+    font-style: italic;
+    color: #fff;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 12px 0;
+    overflow-y: auto;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 24px;
+    font-size: .82rem;
+    font-weight: 500;
+    color: rgba(255,255,255,.5);
+    transition: background .15s, color .15s;
+    cursor: pointer;
+}
+
+.nav-item:hover {
+    background: rgba(255,255,255,.06);
+    color: rgba(255,255,255,.85);
+}
+
+.nav-item.active {
+    background: #1a1a3e;
+    color: #fff;
+    font-weight: 600;
+    border-left: 3px solid #4f46e5;
+    padding-left: 21px;
+}
+
+.nav-icon { font-size: .9rem; width: 18px; text-align: center; }
+
+.sidebar-footer {
+    padding: 16px 0;
+    border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.logout-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 24px;
+    font-size: .82rem;
+    font-weight: 500;
+    color: rgba(255,255,255,.4);
+    transition: background .15s, color .15s;
+}
+
+.logout-item:hover {
+    background: rgba(239,68,68,.1);
+    color: #f87171;
+}
+
+/* ── MAIN ── */
+.main {
+    margin-left: 220px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+    background: #fff;
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #ebebf0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.topbar-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #0d0d1a;
+    letter-spacing: -.3px;
+}
+
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.topbar-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: #0d0d1a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; font-weight: 700; color: #fff;
+}
+
+.topbar-username {
+    font-size: .82rem;
+    font-weight: 600;
+    color: #0d0d1a;
+}
+
+/* ── CONTENT ── */
+.content {
+    padding: 28px 32px;
+    flex: 1;
+}
+
+.greeting-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0d0d1a;
+    margin-bottom: 4px;
+}
+
+.greeting-sub {
+    font-size: .82rem;
+    color: #888;
+    margin-bottom: 24px;
+}
+
+/* ── STAT CARDS ── */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: #0d1b5e;
+    border-radius: 10px;
+    padding: 20px 22px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::after {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.05);
+}
+
+.stat-card-label {
+    font-size: .72rem;
+    font-weight: 600;
+    color: rgba(255,255,255,.6);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 8px;
+}
+
+.stat-card-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -1px;
+    line-height: 1;
+}
+
+/* ── SECTION TITLE ── */
+.section-title {
+    font-size: .95rem;
+    font-weight: 700;
+    color: #0d0d1a;
+    margin-bottom: 12px;
+}
+
+/* ── AKTIVITAS CARD ── */
+.card {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #ebebf0;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.card-inner { padding: 20px 24px 4px; }
+
+.act-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.act-table td {
+    padding: 10px 0;
+    font-size: .82rem;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+}
+
+.act-table tr:last-child td { border-bottom: none; }
+
+.act-id {
+    color: #555;
+    font-weight: 500;
+    width: 130px;
+}
+
+.act-sep {
+    color: #ccc;
+    width: 30px;
+    text-align: center;
+}
+
+.act-judul {
+    color: #111;
+    font-weight: 500;
+}
+
+.act-date {
+    text-align: right;
+    color: #aaa;
+    font-size: .78rem;
+    white-space: nowrap;
+}
+
+/* ── BUKU POPULER ── */
+.pop-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.pop-table th {
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #aaa;
+    padding: 10px 0 10px 0;
+    border-bottom: 1px solid #ebebf0;
+    text-align: left;
+}
+
+.pop-table th:first-child,
+.pop-table td:first-child { width: 32px; }
+
+.pop-table th:last-child,
+.pop-table td:last-child { text-align: right; }
+
+.pop-table td {
+    padding: 11px 0;
+    font-size: .82rem;
+    color: #111;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+}
+
+.pop-table tbody tr:last-child td { border-bottom: none; }
+
+.pop-table tbody tr:hover td { background: #fafafe; }
+
+.pop-num {
+    font-size: .78rem;
+    font-weight: 700;
+    color: #aaa;
+}
+
+.pop-penulis { color: #888; font-size: .78rem; }
+
+.pop-count {
+    font-size: .78rem;
+    font-weight: 600;
+    color: #4f46e5;
+}
+
+.empty-row td {
+    padding: 32px 0;
+    text-align: center;
+    color: #bbb;
+    font-size: .82rem;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+    </style>
     <title>Dashboard Admin - PustaKita</title>
 </head>
 <body>
