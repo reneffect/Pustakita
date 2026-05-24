@@ -113,7 +113,7 @@ class LoginPage {
             <script src="https://cdn.tailwindcss.com"></script>
             <link rel="stylesheet" href="/Pustakita_upk_team.1/Pustakita/style css/tampilan.css">
         </head>
-        <body class="bg-white">
+        <body class="bg-[url('../../asset/bg-asset.jpeg')] bg-cover bg-center bg-no-repeat min-h-screen">
             <div class="flex justify-center items-center h-screen">
                 <div class="bg-gray-100 p-6 rounded shadow-md w-80">
 

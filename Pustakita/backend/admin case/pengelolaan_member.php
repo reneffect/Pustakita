@@ -203,7 +203,7 @@ $totalNonaktif = $member->getTotalNonaktif();
             ['href' => 'dashboard_admin.php',   'label' => 'Dashboard',           'icon' => '⊞'],
             ['href' => 'pengelolaan_buku.php',  'label' => 'Pengelolaan Buku',    'icon' => '📖'],
             ['href' => 'pengelolaan_member.php','label' => 'Pengelolaan Member',  'icon' => '👤'],
-            ['href' => 'peminjaman.php',        'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
+            ['href' => 'kelola_peminjaman.php',        'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
             ['href' => 'pengembalian.php',      'label' => 'Kelola Pengembalian', 'icon' => '↩'],
             ['href' => 'denda.php',             'label' => 'Kelola Denda',        'icon' => '💰'],
             ['href' => 'laporan.php',           'label' => 'Laporan',             'icon' => '📊'],
