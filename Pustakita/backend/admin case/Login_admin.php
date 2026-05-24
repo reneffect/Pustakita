@@ -5,9 +5,30 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Force logout jika ada parameter ?force=1
+if (isset($_GET['force'])) {
+    session_unset();
+    session_destroy();
+    session_start();
+}
+
+// Validasi session admin masih valid di database
 if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-    header("Location: dashboard_admin.php");
-    exit();
+    $stmt = $koneksi->prepare("SELECT session_token FROM admin WHERE id_admin = ?");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $admin = $stmt->get_result()->fetch_assoc();
+
+    // Kalau token masih cocok, redirect ke dashboard
+    if ($admin && $admin['session_token'] === $_SESSION['token']) {
+        header("Location: dashboard_admin.php");
+        exit();
+    } else {
+        // Token tidak cocok, hapus session lama
+        session_unset();
+        session_destroy();
+        session_start();
+    }
 }
 
 class Auth {
@@ -68,25 +89,29 @@ class LoginPage {
                 return;
             }
 
-            // Tidak perlu mysqli_real_escape_string karena sudah pakai prepared statement
             $username = trim($_POST['username']);
             $password = $_POST['password'];
 
-            $this->error_message = $this->auth->login($username, $password);
+            $result = $this->auth->login($username, $password);
+            if (is_string($result)) {
+                $this->error_message = $result;
+            }
         }
     }
 
     public function render() {
         $error = $this->error_message;
+        // Ambil pesan dari URL jika ada
+        $pesan = $_GET['pesan'] ?? '';
         ?>
         <!DOCTYPE html>
         <html lang="id">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script src="https://cdn.tailwindcss.com"></script>
-            <link rel="stylesheet" href="/Pustakita_upk_team.1/Pustakita/style_css/tampilan.css">
             <title>Login Admin - PustaKita</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <link rel="stylesheet" href="/Pustakita_upk_team.1/Pustakita/style css/tampilan.css">
         </head>
         <body class="bg-white">
             <div class="flex justify-center items-center h-screen">
@@ -106,8 +131,13 @@ class LoginPage {
                     </div>
 
                     <hr class="mb-4 border-gray-300">
-
                     <h2 class="text-base font-semibold text-center mb-4">Login Admin</h2>
+
+                    <?php if ($pesan === 'sesi_digantikan'): ?>
+                        <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 text-sm px-4 py-2 rounded mb-3">
+                            Sesi Anda telah digantikan oleh login lain.
+                        </div>
+                    <?php endif; ?>
 
                     <?php if (!empty($error)): ?>
                         <div class="bg-red-100 border border-red-400 text-red-700 text-sm px-4 py-2 rounded mb-3">
