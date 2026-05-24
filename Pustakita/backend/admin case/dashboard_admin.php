@@ -427,7 +427,7 @@ a { text-decoration: none; color: inherit; }
         <?php
         $menus = [
             ['href' => 'dashboard_admin.php', 'label' => 'Dashboard',          'icon' => '⊞'],
-            ['href' => 'buku.php',            'label' => 'Pengelolaan Buku',    'icon' => '📖'],
+            ['href' => 'pengelolaan_buku.php',            'label' => 'Pengelolaan Buku',    'icon' => '📖'],
             ['href' => 'member.php',          'label' => 'Pengelolaan Member',  'icon' => '👤'],
             ['href' => 'peminjaman.php',      'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
             ['href' => 'pengembalian.php',    'label' => 'Kelola Pengembalian', 'icon' => '↩'],
