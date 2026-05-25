@@ -1,13 +1,15 @@
 <?php
 $host = "localhost";
 $user = "root";
-$password = "";
-$dbname = "pustakita_db";
+$pass = "";
+$dbname = "pustakita";
 
-$koneksi = new mysqli($host, $user, $password, $dbname);
+$koneksi = mysqli_connect($host, $user, $pass, $dbname);
 
-if ($koneksi->connect_error) {
-    die("Koneksi gagal: " . $koneksi->connect_error);
+if (!$koneksi) {
+    die("Koneksi ke database gagal: " . mysqli_connect_error());
 }
 
+// Set charset ke UTF-8
+mysqli_set_charset($koneksi, "utf8mb4");
 ?>
