@@ -8,30 +8,46 @@ if (!isset($_SESSION['siswa'])) {
 
 $id_siswa = $_SESSION['siswa'];
 
-$searchQuery = "";
-if (isset($_GET['q'])) {
-    $searchQuery = mysqli_real_escape_string($koneksi, $_GET['q']);
-    $queryBuku = "SELECT b.*, k.nama_kategori FROM buku b LEFT JOIN kategori k ON b.kategori_id = k.id_kategori WHERE b.judul LIKE '%$searchQuery%' OR b.penulis LIKE '%$searchQuery%'";
-} else {
-    $queryBuku = "SELECT b.*, k.nama_kategori FROM buku b LEFT JOIN kategori k ON b.kategori_id = k.id_kategori";
-}
-$resultBuku = mysqli_query($koneksi, $queryBuku);
-
-// Fetch user's favorited books to check which ones are already favorited
-$favorit_array = [];
-$queryFavorit = mysqli_query($koneksi, "SELECT id_buku FROM favorit WHERE id_siswa = $id_siswa");
-if ($queryFavorit) {
-    while ($fav = mysqli_fetch_assoc($queryFavorit)) {
-        $favorit_array[] = $fav['id_buku'];
+// Handle adding/removing favorite
+if (isset($_GET['add'])) {
+    $id_buku = intval($_GET['add']);
+    // Check if already favorited
+    $cek = mysqli_query($koneksi, "SELECT * FROM favorit WHERE id_siswa = $id_siswa AND id_buku = $id_buku");
+    if (mysqli_num_rows($cek) == 0) {
+        mysqli_query($koneksi, "INSERT INTO favorit (id_siswa, id_buku) VALUES ($id_siswa, $id_buku)");
+    } else {
+        // Optional: Toggle favorit by removing it if already favorited (can be left as is or remove)
+        mysqli_query($koneksi, "DELETE FROM favorit WHERE id_siswa = $id_siswa AND id_buku = $id_buku");
     }
+    // Redirect back to favorit page or catalog
+    header("Location: favorit.php");
+    exit();
 }
+
+// Handle remove favorite directly
+if (isset($_GET['remove'])) {
+    $id_buku = intval($_GET['remove']);
+    mysqli_query($koneksi, "DELETE FROM favorit WHERE id_siswa = $id_siswa AND id_buku = $id_buku");
+    header("Location: favorit.php");
+    exit();
+}
+
+// Fetch all favorited books
+$queryFavorit = "
+    SELECT b.*, k.nama_kategori 
+    FROM favorit f
+    JOIN buku b ON f.id_buku = b.id_buku
+    LEFT JOIN kategori k ON b.kategori_id = k.id_kategori
+    WHERE f.id_siswa = $id_siswa
+";
+$resultFavorit = mysqli_query($koneksi, $queryFavorit);
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Catalog - PustaKita</title>
+<title>Buku Favorit - PustaKita</title>
   <link rel="stylesheet" href="pustakita.css">
   <style>
     .catalog-container {
@@ -43,8 +59,16 @@ if ($queryFavorit) {
     .catalog-title {
         font-size: 24px;
         font-weight: 800;
-        color: #04005c; /* var(--blue) fallback */
+        color: #04005c; 
         margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .catalog-title svg {
+        fill: #ef4444;
+        width: 28px;
+        height: 28px;
     }
     .catalog-grid {
         display: grid;
@@ -135,14 +159,27 @@ if ($queryFavorit) {
     .btn-love svg {
         width: 18px;
         height: 18px;
+        fill: #ef4444;
         stroke: #ef4444;
-        fill: none;
         stroke-width: 2;
         stroke-linecap: round;
         stroke-linejoin: round;
     }
-    .btn-love.favorited svg {
-        fill: #ef4444;
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 16px;
+        color: #64748b;
+        font-size: 16px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    }
+    .empty-state svg {
+        width: 64px;
+        height: 64px;
+        stroke: #cbd5e1;
+        margin-bottom: 16px;
+        fill: none;
     }
   </style>
 </head>
@@ -161,14 +198,14 @@ if ($queryFavorit) {
     </div>
     <form action="catalog.php" method="GET" class="nav-search">
       <svg width="16" height="16" fill="none" stroke="#a0aec0" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
-      <input type="text" name="q" placeholder="Cari Produk...Judul Buku atau Nama Penulis" value="<?php echo htmlspecialchars($searchQuery); ?>" style="border:none; outline:none; background:transparent; width:100%;">
+      <input type="text" name="q" placeholder="Cari Produk...Judul Buku atau Nama Penulis" style="border:none; outline:none; background:transparent; width:100%;">
     </form>
   </div>
   <div class="nav-right">
     <div class="nav-links">
       <a href="home.php">Home</a>
-      <a href="catalog.php" class="active">Catalog</a>
-      <a href="favorit.php">Favorit</a>
+      <a href="catalog.php">Catalog</a>
+      <a href="favorit.php" class="active">Favorit</a>
       <a href="history.php">History</a>
       <a href="profile.php">Profil</a>
     </div>
@@ -178,7 +215,7 @@ if ($queryFavorit) {
       </a>
     </div>
     <?php if (isset($_SESSION['siswa'])): ?>
-      <span style="color:#fff;font-weight:600;font-size:14px;">👤 <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></span>
+      <span style="color:#111827;font-weight:600;font-size:14px;margin-right:15px;">👤 <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></span>
       <a href="logout.php"><button class="btn-login">Logout</button></a>
     <?php else: ?>
       <a href="login.php"><button class="btn-masuk">Login</button></a>
@@ -188,32 +225,27 @@ if ($queryFavorit) {
 
 <div class="catalog-container">
     <div class="catalog-title">
-        <?php if (!empty($searchQuery)): ?>
-            Hasil Pencarian: "<?php echo htmlspecialchars($searchQuery); ?>"
-        <?php else: ?>
-            Katalog Buku
-        <?php endif; ?>
+        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+        Buku Favorit Anda
     </div>
 
-    <div class="catalog-grid">
-        <?php
-        $gradients = [
-            'linear-gradient(135deg,#1e3a5f,#2d6a9f)',
-            'linear-gradient(135deg,#7f1d1d,#b91c1c)',
-            'linear-gradient(135deg,#1e4d3e,#059669)',
-            'linear-gradient(135deg,#78350f,#d97706)',
-            'linear-gradient(135deg,#4a044e,#9333ea)',
-            'linear-gradient(135deg,#0c4a6e,#0284c7)'
-        ];
-        $j = 0;
-        if (mysqli_num_rows($resultBuku) > 0) {
-            while ($row = mysqli_fetch_assoc($resultBuku)) {
-                $grad = $gradients[$j % count($gradients)];
-                $is_favorited = in_array($row['id_buku'], $favorit_array);
-                $heart_class = $is_favorited ? 'btn-love favorited' : 'btn-love';
+    <?php if (mysqli_num_rows($resultFavorit) > 0): ?>
+        <div class="catalog-grid">
+            <?php
+            $gradients = [
+                'linear-gradient(135deg,#1e3a5f,#2d6a9f)',
+                'linear-gradient(135deg,#7f1d1d,#b91c1c)',
+                'linear-gradient(135deg,#1e4d3e,#059669)',
+                'linear-gradient(135deg,#78350f,#d97706)',
+                'linear-gradient(135deg,#4a044e,#9333ea)',
+                'linear-gradient(135deg,#0c4a6e,#0284c7)'
+            ];
+            $j = 0;
+            while ($row = mysqli_fetch_assoc($resultFavorit)) {
+                $grad = $gradients[$row['id_buku'] % count($gradients)];
                 
                 echo '<div class="book-card">';
-                echo '  <a href="favorit.php?add=' . $row['id_buku'] . '" class="' . $heart_class . '" title="Tambahkan ke Favorit">';
+                echo '  <a href="favorit.php?remove=' . $row['id_buku'] . '" class="btn-love" title="Hapus dari Favorit">';
                 echo '    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
                 echo '  </a>';
                 
@@ -233,11 +265,16 @@ if ($queryFavorit) {
                 echo '</div>';
                 $j++;
             }
-        } else {
-            echo "<p style='color:#666;'>Buku tidak ditemukan.</p>";
-        }
-        ?>
-    </div>
+            ?>
+        </div>
+    <?php else: ?>
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg><br>
+            Belum ada buku favorit yang ditambahkan.
+            <br><br>
+            <a href="catalog.php" style="background: #04005c; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">Jelajahi Katalog</a>
+        </div>
+    <?php endif; ?>
 </div>
 
 </body>

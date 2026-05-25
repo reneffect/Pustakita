@@ -1,3 +1,42 @@
+<?php
+session_start();
+include 'database.php';
+
+if (!isset($_SESSION['siswa'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$id_siswa = $_SESSION['siswa'];
+
+$pesan = '';
+
+// Handle update form submission
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = mysqli_real_escape_string($koneksi, $_POST['username']);
+    $email = mysqli_real_escape_string($koneksi, $_POST['email']);
+    $kelas = mysqli_real_escape_string($koneksi, $_POST['kelas']);
+    $jurusan = mysqli_real_escape_string($koneksi, $_POST['jurusan']);
+
+    // Check if new username exists for another user
+    $cek_username = mysqli_query($koneksi, "SELECT * FROM siswa WHERE username = '$username' AND id_siswa != $id_siswa");
+    if (mysqli_num_rows($cek_username) > 0) {
+        $pesan = '<div style="color: #dc2626; background: #fee2e2; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold;">Username sudah digunakan. Silakan pilih username lain.</div>';
+    } else {
+        $update_query = "UPDATE siswa SET username = '$username', email = '$email', kelas = '$kelas', jurusan = '$jurusan' WHERE id_siswa = $id_siswa";
+        if (mysqli_query($koneksi, $update_query)) {
+            $_SESSION['username'] = $username; // update session
+            $pesan = '<div style="color: #059669; background: #d1fae5; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold;">Profil berhasil diperbarui.</div>';
+        } else {
+            $pesan = '<div style="color: #dc2626; background: #fee2e2; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold;">Gagal memperbarui profil: ' . mysqli_error($koneksi) . '</div>';
+        }
+    }
+}
+
+// Fetch current user data
+$query = mysqli_query($koneksi, "SELECT * FROM siswa WHERE id_siswa = $id_siswa");
+$user = mysqli_fetch_assoc($query);
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -89,8 +128,9 @@
       padding: 14px 24px;
       border-radius: 999px;
       cursor: pointer;
+      text-decoration: none;
     }
-    .profile-avatar {
+    .edit-avatar-wrapper {
       display: flex;
       gap: 24px;
       align-items: center;
@@ -109,6 +149,7 @@
       font-weight: 800;
       color: #1e3a8a;
       box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
+      text-transform: uppercase;
     }
     .avatar-text {
       display: flex;
@@ -149,14 +190,21 @@
     <div class="nav-links">
       <a href="home.php">Home</a>
       <a href="catalog.php">Catalog</a>
+      <a href="favorit.php">Favorit</a>
       <a href="history.php">History</a>
       <a href="profile.php" class="active">Profil</a>
     </div>
     <div class="nav-cart">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+      <a href="catalog.php">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+      </a>
     </div>
-    <button class="btn-masuk">Login</button>
-    <button class="btn-login">Logout</button>
+    <?php if (isset($_SESSION['siswa'])): ?>
+      <span style="color:#111827;font-weight:600;font-size:14px;margin-right:15px;">👤 <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></span>
+      <a href="logout.php"><button class="btn-login">Logout</button></a>
+    <?php else: ?>
+      <a href="login.php"><button class="btn-masuk">Login</button></a>
+    <?php endif; ?>
   </div>
 </nav>
 
@@ -167,37 +215,39 @@
       <p>Perbarui informasi profil Anda di sini. Setelah selesai, tekan Simpan untuk menyimpan perubahan.</p>
     </div>
 
-    <div class="profile-avatar">
-      <div class="avatar-circle">IR</div>
+    <?php echo $pesan; ?>
+
+    <div class="edit-avatar-wrapper">
+      <div class="avatar-circle"><?php echo strtoupper(substr($user['username'], 0, 2)); ?></div>
       <div class="avatar-text">
-        <strong>Isabella Rosalyta</strong>
+        <strong><?php echo htmlspecialchars($user['username']); ?></strong>
         <span>Anggota PustaKita</span>
       </div>
     </div>
 
-    <form class="profile-form" action="#">
+    <form class="profile-form" action="" method="POST">
       <div class="form-grid">
         <div>
-          <label for="name">Nama</label>
-          <input id="name" type="text" value="Isabella Rosalyta">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" value="<?php echo htmlspecialchars($user['username']); ?>" required>
         </div>
         <div>
           <label for="email">Email</label>
-          <input id="email" type="email" value="user@email.com">
+          <input id="email" name="email" type="email" value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>">
         </div>
       </div>
       <div class="form-grid">
         <div>
-          <label for="phone">No. Handphone</label>
-          <input id="phone" type="tel" value="0812xxxxxxx">
+          <label for="kelas">Kelas</label>
+          <input id="kelas" name="kelas" type="text" value="<?php echo htmlspecialchars($user['kelas'] ?? ''); ?>">
         </div>
         <div>
-          <label for="username">Username</label>
-          <input id="username" type="text" value="isabella123">
+          <label for="jurusan">Jurusan</label>
+          <input id="jurusan" name="jurusan" type="text" value="<?php echo htmlspecialchars($user['jurusan'] ?? ''); ?>">
         </div>
       </div>
       <div class="form-actions">
-        <button class="btn-secondary" type="button" onclick="location.href='profile.html'">Kembali</button>
+        <a class="btn-secondary" href="profile.php">Kembali</a>
         <button class="btn-save" type="submit">Simpan</button>
       </div>
     </form>

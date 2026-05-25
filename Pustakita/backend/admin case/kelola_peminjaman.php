@@ -1,469 +1,339 @@
 <?php
-include '../database.php';
+// ==========================================
+// KONEKSI DATABASE
+// ==========================================
+$host = "localhost";
+$user = "root";       // Sesuaikan dengan username database Anda
+$pass = "";           // Sesuaikan dengan password database Anda
+$dbname   = "pustakita";  // Nama database
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+$conn = new mysqli($host, $user, $pass, $dbname);
+
+if ($conn->connect_error) {
+  die("Koneksi gagal: " . $conn->connect_error);
 }
 
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: Login_admin.php");
-    exit();
+// Ambil admin default (Sebagai pencatat siapa yang mengonfirmasi)
+$res_admin = $conn->query("SELECT id_admin FROM admin LIMIT 1");
+if ($res_admin->num_rows == 0) {
+  $conn->query("INSERT INTO admin (username, password) VALUES ('admin', 'admin123')");
+  $id_admin = $conn->insert_id;
+} else {
+  $id_admin = $res_admin->fetch_assoc()['id_admin'];
 }
 
-class Member {
-    private $db;
+// ==========================================
+// PROSES AKSI KONTROL
+// (Sesuai ENUM peminjaman: menunggu, dipinjam, dikembalikan, ditolak)
+// ==========================================
+$message = "";
 
-    public function __construct($db) {
-        $this->db = $db;
-    }
+if (isset($_POST['action'])) {
+  $action = $_POST['action'];
+  $id_peminjaman = (int)$_POST['id_peminjaman'];
 
-    public function getSemuaMember($keyword = '') {
-        if ($keyword) {
-            $stmt = $this->db->prepare("SELECT * FROM siswa WHERE username LIKE ? OR no_anggota LIKE ? ORDER BY id_siswa DESC");
-            $like = "%$keyword%";
-            $stmt->bind_param("ss", $like, $like);
-            $stmt->execute();
-            return $stmt->get_result();
-        }
-        return $this->db->query("SELECT * FROM siswa ORDER BY id_siswa DESC");
+  if ($action == 'kembalikan') {
+    // Update ke status 'dikembalikan'
+    $sql = "UPDATE peminjaman SET status = 'dikembalikan' WHERE id_peminjaman = $id_peminjaman";
+    if ($conn->query($sql)) {
+      $message = "Sukses: Buku telah dikembalikan.";
     }
+  } elseif ($action == 'setuju_pinjam') {
+    // Update dari 'menunggu' ke 'dipinjam'
+    // Jika diperlukan, set juga tgl_pinjam menjadi hari ini & tgl_pengembalian +7 hari
+    $tgl_pinjam = date('Y-m-d');
+    $tgl_pengembalian = date('Y-m-d', strtotime('+7 days'));
 
-    public function getMemberById($id) {
-        $stmt = $this->db->prepare("SELECT * FROM siswa WHERE id_siswa = ?");
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+    $sql = "UPDATE peminjaman SET 
+                status = 'dipinjam', 
+                id_admin = $id_admin, 
+                tgl_pinjam = '$tgl_pinjam', 
+                tgl_pengembalian = '$tgl_pengembalian' 
+                WHERE id_peminjaman = $id_peminjaman";
+    if ($conn->query($sql)) {
+      $message = "Sukses: Permintaan peminjaman disetujui.";
     }
-
-    public function tambahMember($username, $email, $no_anggota, $no_telepon, $alamat, $status) {
-        $password = password_hash('password123', PASSWORD_DEFAULT);
-        $stmt = $this->db->prepare("INSERT INTO siswa (username, email, password, no_anggota, no_telepon, alamat, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssssss", $username, $email, $password, $no_anggota, $no_telepon, $alamat, $status);
-        if ($stmt->execute()) return "Member berhasil ditambahkan! Password default: password123";
-        return "Gagal: " . $this->db->error;
+  } elseif ($action == 'tolak_pinjam') {
+    // Update dari 'menunggu' ke 'ditolak'
+    $sql = "UPDATE peminjaman SET status = 'ditolak', id_admin = $id_admin WHERE id_peminjaman = $id_peminjaman";
+    if ($conn->query($sql)) {
+      $message = "Info: Permintaan peminjaman telah ditolak.";
     }
-
-    public function editMember($id, $username, $email, $no_anggota, $no_telepon, $alamat, $status) {
-        $stmt = $this->db->prepare("UPDATE siswa SET username=?, email=?, no_anggota=?, no_telepon=?, alamat=?, status=? WHERE id_siswa=?");
-        $stmt->bind_param("ssssssi", $username, $email, $no_anggota, $no_telepon, $alamat, $status, $id);
-        if ($stmt->execute()) return "Member berhasil diupdate!";
-        return "Gagal: " . $this->db->error;
-    }
-
-    public function hapusMember($id) {
-        $stmt = $this->db->prepare("DELETE FROM siswa WHERE id_siswa = ?");
-        $stmt->bind_param("i", $id);
-        if ($stmt->execute()) return "Member berhasil dihapus!";
-        return "Gagal: " . $this->db->error;
-    }
-
-    public function getTotalMember() {
-        return $this->db->query("SELECT COUNT(*) as total FROM siswa")->fetch_assoc()['total'];
-    }
-
-    public function getTotalAktif() {
-        return $this->db->query("SELECT COUNT(*) as total FROM siswa WHERE status='aktif'")->fetch_assoc()['total'];
-    }
-
-    public function getTotalNonaktif() {
-        return $this->db->query("SELECT COUNT(*) as total FROM siswa WHERE status='nonaktif'")->fetch_assoc()['total'];
-    }
+  }
 }
 
-$member    = new Member($koneksi);
-$keyword   = trim($_GET['cari'] ?? '');
+// ==========================================
+// QUERY STATISTIK DASHBOARD ATAS
+// ==========================================
+$stat_aktif = $conn->query("SELECT COUNT(*) as total FROM peminjaman WHERE status = 'dipinjam'")->fetch_assoc()['total'];
+$stat_terlambat = $conn->query("SELECT COUNT(*) as total FROM peminjaman WHERE status = 'dipinjam' AND tgl_pengembalian < CURDATE()")->fetch_assoc()['total'];
+$stat_dikembalikan = $conn->query("SELECT COUNT(*) as total FROM peminjaman WHERE status = 'dikembalikan'")->fetch_assoc()['total'];
+$stat_menunggu = $conn->query("SELECT COUNT(*) as total FROM peminjaman WHERE status = 'menunggu'")->fetch_assoc()['total'];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action     = $_POST['action'] ?? '';
-    $username   = trim($_POST['username'] ?? '');
-    $email      = trim($_POST['email'] ?? '');
-    $no_anggota = trim($_POST['no_anggota'] ?? '');
-    $no_telepon = trim($_POST['no_telepon'] ?? '');
-    $alamat     = trim($_POST['alamat'] ?? '');
-    $status     = $_POST['status'] ?? 'aktif';
-
-    if ($action === 'tambah') {
-        $pesan = $member->tambahMember($username, $email, $no_anggota, $no_telepon, $alamat, $status);
-    } elseif ($action === 'edit') {
-        $pesan = $member->editMember((int)$_POST['id_siswa'], $username, $email, $no_anggota, $no_telepon, $alamat, $status);
-    } elseif ($action === 'hapus') {
-        $pesan = $member->hapusMember((int)$_POST['id_siswa']);
-    }
-
-    header("Location: pengelolaan_member.php?pesan=" . urlencode($pesan));
-    exit();
+// ==========================================
+// PENCARIAN & QUERY TABEL UTAMA (Hanya yg sedang dipinjam atau selesai)
+// ==========================================
+$search = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
+$q_peminjaman = "
+    SELECT p.id_peminjaman, s.username as anggota, b.judul, p.tgl_pinjam, p.tgl_pengembalian, p.status 
+    FROM peminjaman p 
+    JOIN siswa s ON p.siswa_id = s.id_siswa 
+    JOIN buku b ON p.buku_id = b.id_buku 
+    WHERE p.status IN ('dipinjam', 'dikembalikan') 
+";
+if (!empty($search)) {
+  $q_peminjaman .= " AND (s.username LIKE '%$search%' OR b.judul LIKE '%$search%') ";
 }
+$q_peminjaman .= " ORDER BY p.id_peminjaman DESC LIMIT 5";
+$list_peminjaman = $conn->query($q_peminjaman);
 
-if (isset($_GET['hapus'])) {
-    $pesan = $member->hapusMember((int)$_GET['hapus']);
-    header("Location: pengelolaan_member.php?pesan=" . urlencode($pesan));
-    exit();
-}
-
-$pesan         = $_GET['pesan'] ?? '';
-$daftarMember  = $member->getSemuaMember($keyword);
-$editData      = isset($_GET['edit']) ? $member->getMemberById((int)$_GET['edit']) : null;
-$showTambah    = isset($_GET['tambah']);
-$totalMember   = $member->getTotalMember();
-$totalAktif    = $member->getTotalAktif();
-$totalNonaktif = $member->getTotalNonaktif();
+// QUERY Peminjaman Baru (Yg statusnya 'menunggu')
+$q_menunggu = "
+    SELECT p.id_peminjaman, p.tgl_pinjam, s.username, s.id_siswa, b.judul 
+    FROM peminjaman p 
+    JOIN siswa s ON p.siswa_id = s.id_siswa 
+    JOIN buku b ON p.buku_id = b.id_buku 
+    WHERE p.status = 'menunggu' 
+    ORDER BY p.id_peminjaman ASC
+";
+$list_menunggu = $conn->query($q_menunggu);
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pengelolaan Member - PustaKita</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #1a3c5e; --primary-hover: #164e7a; --primary-light: #e6f1fb; --primary-text: #185fa5;
-            --danger: #993c1d; --danger-light: #faece7;
-            --success: #3b6d11; --success-light: #eaf3de;
-            --warning: #854f0b; --warning-light: #faeeda;
-            --gray: #5f5e5a; --gray-light: #f1efe8;
-            --bg: #f5f7fa; --surface: #ffffff; --border: rgba(0,0,0,.09); --border-strong: rgba(0,0,0,.15);
-            --text-primary: #1c1c1a; --text-secondary: #6b6b68; --text-muted: #9b9b98;
-            --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,.08); --shadow-md: 0 4px 16px rgba(0,0,0,.10);
-            --sidebar-w: 240px; --transition: .18s ease;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kelola Peminjaman - Pustakita</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brandLight: '#C9D3F8',
+            brandDark: '#0A0F5C',
+            brandDanger: '#D32F2F',
+            brandCardBg: '#DCE1F9'
+          }
         }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); font-size: 14px; line-height: 1.6; min-height: 100vh; }
-        a { text-decoration: none; color: inherit; }
-        button { cursor: pointer; font-family: inherit; }
-
-        /* LAYOUT */
-        .app-layout { display: flex; min-height: 100vh; }
-
-        /* SIDEBAR */
-        .sidebar { width: var(--sidebar-w); background: #0f1e2e; color: #fff; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; overflow-y: auto; }
-        .sidebar-brand { padding: 22px 20px 16px; font-size: 19px; font-weight: 700; letter-spacing: -.3px; border-bottom: 1px solid rgba(255,255,255,.07); }
-        .sidebar-brand span { color: #60a5fa; }
-        .sidebar-nav { padding: 12px 10px; flex: 1; }
-        .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-md); color: rgba(255,255,255,.65); font-size: 13.5px; font-weight: 500; transition: background var(--transition), color var(--transition); margin-bottom: 2px; }
-        .nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
-        .nav-item.active { background: rgba(96,165,250,.18); color: #93c5fd; }
-        .nav-item i { font-size: 17px; width: 20px; text-align: center; }
-        .sidebar-footer { padding: 14px 10px; border-top: 1px solid rgba(255,255,255,.07); }
-
-        /* MAIN */
-        .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; }
-
-        /* TOPBAR */
-        .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
-        .topbar-title { font-size: 18px; font-weight: 700; }
-        .topbar-user { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary); }
-        .avatar-circle { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-light); color: var(--primary-text); font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; }
-
-        /* PAGE CONTENT */
-        .page-content { padding: 28px 32px; flex: 1; }
-
-        /* STAT CARDS */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-bottom: 26px; }
-        .stat-card { border-radius: var(--radius-lg); padding: 16px 20px; position: relative; overflow: hidden; }
-        .stat-card.blue  { background: var(--primary); color: #fff; }
-        .stat-card.red   { background: #b34022; color: #fff; }
-        .stat-card.gray  { background: var(--gray-light); color: var(--text-primary); }
-        .stat-card-val   { font-size: 30px; font-weight: 800; line-height: 1; }
-        .stat-card-label { font-size: 11.5px; margin-top: 5px; opacity: .8; }
-        .stat-card::after { content: ''; position: absolute; width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,.07); bottom: -20px; right: -10px; }
-
-        /* SEARCH */
-        .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
-        .search-wrap { position: relative; }
-        .search-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 16px; pointer-events: none; }
-        .search-input { padding: 9px 14px 9px 36px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); font-size: 13px; color: var(--text-primary); outline: none; width: 260px; }
-        .search-input:focus { border-color: var(--primary-text); box-shadow: 0 0 0 3px rgba(24,95,165,.12); }
-
-        /* TABLE */
-        .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
-        .data-table { width: 100%; font-size: 13px; border-collapse: collapse; }
-        .data-table thead tr { background: #f8f9fb; border-bottom: 1px solid var(--border); }
-        .data-table th { padding: 11px 16px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 11.5px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
-        .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-        .data-table tbody tr:last-child td { border-bottom: none; }
-        .data-table tbody tr:hover { background: #fafbfc; }
-        .td-id { color: var(--text-muted); font-size: 11.5px; font-family: monospace; }
-        .no-data { text-align: center; padding: 28px; color: var(--text-muted); }
-
-        /* STATUS BADGE */
-        .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 99px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
-        .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .6; }
-        .status-aktif    { background: var(--success-light); color: var(--success); }
-        .status-nonaktif { background: var(--danger-light);  color: var(--danger); }
-
-        /* BUTTONS */
-        .btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border: none; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; transition: opacity var(--transition); }
-        .btn:hover { opacity: .86; }
-        .btn-primary { background: var(--primary); color: #fff; }
-        .btn-danger  { background: var(--danger);  color: #fff; }
-        .btn-ghost   { background: var(--gray-light); color: var(--gray); }
-        .btn-sm { padding: 4px 11px; font-size: 12px; }
-
-        /* FORM CARD */
-        .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
-        .form-card-header { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 15px; font-weight: 600; }
-        .form-card-body { padding: 20px 24px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        .form-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-        .form-input { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 13px; outline: none; font-family: inherit; }
-        .form-input:focus { border-color: var(--primary-text); box-shadow: 0 0 0 3px rgba(24,95,165,.12); }
-        .form-actions { display: flex; gap: 10px; margin-top: 18px; }
-
-        /* ALERT */
-        .alert { padding: 11px 16px; border-radius: var(--radius-md); font-size: 13px; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
-        .alert-success { background: var(--success-light); color: var(--success); }
-        .alert-danger  { background: var(--danger-light);  color: var(--danger); }
-
-        /* SECTION TITLE */
-        .section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
-    </style>
+      }
+    }
+  </script>
 </head>
-<body>
-<div class="app-layout">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-        <div class="sidebar-brand"><span>P</span>ustaKita</div>
-        <nav class="sidebar-nav">
-            <?php
-            $menus = [
-                ['href' => 'dashboard_admin.php',  'label' => 'Dashboard',           'icon' => '⊞'],
-                ['href' => 'pengelolaan_buku.php', 'label' => 'Pengelolaan Buku',    'icon' => '📖'],
-                ['href' => 'pengelolaan_member.php',           'label' => 'Pengelolaan Member',  'icon' => '👤'],
-                ['href' => 'kelola_peminjaman.php',       'label' => 'Kelola Peminjaman',   'icon' => '🕐'],
-                ['href' => 'kelola_pengembalian.php',     'label' => 'Kelola Pengembalian', 'icon' => '↩'],
-                ['href' => 'kelola_denda.php',            'label' => 'Kelola Denda',        'icon' => '💰'],
-                ['href' => 'laporan.php',          'label' => 'Laporan',              'icon' => 'ri-bar-chart-line'],
-            ];
-            foreach ($menus as $menu):
-                $active = basename($_SERVER['PHP_SELF']) === $menu['href'] ? 'active' : '';
-            ?>
-            <a href="<?= $menu['href'] ?>" class="nav-item <?= $active ?>">
-                <i class="<?= $menu['icon'] ?>"></i>
-                <?= $menu['label'] ?>
-            </a>
-            <?php endforeach; ?>
-        </nav>
-        <div class="sidebar-footer">
-            <a href="Logout.php" class="nav-item">
-                <i class="ri-logout-box-line"></i> Log Out
-            </a>
-        </div>
-    </aside>
+<body class="bg-gray-50 flex h-screen font-sans text-gray-800 overflow-hidden">
 
-    <!-- MAIN -->
-    <div class="main">
-        <div class="topbar">
-            <div class="topbar-title">Pengelolaan Member</div>
-            <div class="topbar-user">
-                <div class="avatar-circle"><?= strtoupper(substr($_SESSION['username'], 0, 1)) ?></div>
-                <span><?= htmlspecialchars($_SESSION['username']) ?></span>
-            </div>
-        </div>
-
-        <div class="page-content">
-
-            <?php if ($pesan): ?>
-            <div class="alert <?= str_contains($pesan, 'Gagal') ? 'alert-danger' : 'alert-success' ?>">
-                <i class="ri-<?= str_contains($pesan, 'Gagal') ? 'error-warning' : 'checkbox-circle' ?>-line"></i>
-                <?= htmlspecialchars($pesan) ?>
-            </div>
-            <?php endif; ?>
-
-            <!-- STAT CARDS -->
-            <div class="stats-grid">
-                <div class="stat-card blue">
-                    <div class="stat-card-val"><?= $totalMember ?></div>
-                    <div class="stat-card-label">Total Member</div>
-                </div>
-                <div class="stat-card gray">
-                    <div class="stat-card-val"><?= $totalAktif ?></div>
-                    <div class="stat-card-label">Member Aktif</div>
-                </div>
-                <div class="stat-card red">
-                    <div class="stat-card-val"><?= $totalNonaktif ?></div>
-                    <div class="stat-card-label">Member Nonaktif</div>
-                </div>
-            </div>
-
-            <!-- TOOLBAR -->
-            <div class="toolbar">
-                <div class="section-title">Daftar Member</div>
-                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                    <form method="GET" action="">
-                        <div class="search-wrap">
-                            <i class="ri-search-line"></i>
-                            <input type="text" name="cari" class="search-input"
-                                placeholder="Cari nama / no. anggota..."
-                                value="<?= htmlspecialchars($keyword) ?>">
-                        </div>
-                    </form>
-                    <a href="?tambah=1" class="btn btn-primary">
-                        <i class="ri-user-add-line"></i> Tambah Member
-                    </a>
-                </div>
-            </div>
-
-            <!-- TABEL -->
-            <div class="table-wrap">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nama Member</th>
-                            <th>No. Anggota</th>
-                            <th>No. Telepon</th>
-                            <th>Status</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php if ($daftarMember && $daftarMember->num_rows > 0):
-                        while ($row = $daftarMember->fetch_assoc()): ?>
-                        <tr>
-                            <td class="td-id">#<?= str_pad($row['id_siswa'], 3, '0', STR_PAD_LEFT) ?></td>
-                            <td>
-                                <div style="display:flex;align-items:center;gap:10px">
-                                    <div class="avatar-circle" style="width:30px;height:30px;font-size:11px">
-                                        <?= strtoupper(substr($row['username'], 0, 1)) ?>
-                                    </div>
-                                    <span style="font-weight:500"><?= htmlspecialchars($row['username']) ?></span>
-                                </div>
-                            </td>
-                            <td><?= htmlspecialchars($row['no_anggota'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars($row['no_telepon'] ?? '-') ?></td>
-                            <td>
-                                <span class="status-badge <?= ($row['status'] ?? 'aktif') === 'aktif' ? 'status-aktif' : 'status-nonaktif' ?>">
-                                    <?= ucfirst($row['status'] ?? 'aktif') ?>
-                                </span>
-                            </td>
-                            <td>
-                                <div style="display:flex;gap:6px">
-                                    <a href="?edit=<?= $row['id_siswa'] ?>" class="btn btn-primary btn-sm">
-                                        <i class="ri-edit-line"></i> Edit
-                                    </a>
-                                    <a href="?hapus=<?= $row['id_siswa'] ?>" class="btn btn-danger btn-sm"
-                                        onclick="return confirm('Yakin hapus member ini?')">
-                                        <i class="ri-delete-bin-line"></i> Hapus
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endwhile; ?>
-                    <?php else: ?>
-                        <tr><td colspan="6" class="no-data">Belum ada data member</td></tr>
-                    <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- FORM EDIT -->
-            <?php if ($editData): ?>
-            <div class="form-card">
-                <div class="form-card-header"><i class="ri-edit-line"></i> Edit Member</div>
-                <div class="form-card-body">
-                    <form method="POST" action="">
-                        <input type="hidden" name="action" value="edit">
-                        <input type="hidden" name="id_siswa" value="<?= $editData['id_siswa'] ?>">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="form-label">Nama / Username *</label>
-                                <input type="text" name="username" class="form-input"
-                                    value="<?= htmlspecialchars($editData['username']) ?>" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Email *</label>
-                                <input type="email" name="email" class="form-input"
-                                    value="<?= htmlspecialchars($editData['email'] ?? '') ?>" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">No. Anggota</label>
-                                <input type="text" name="no_anggota" class="form-input"
-                                    value="<?= htmlspecialchars($editData['no_anggota'] ?? '') ?>">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">No. Telepon</label>
-                                <input type="text" name="no_telepon" class="form-input"
-                                    value="<?= htmlspecialchars($editData['no_telepon'] ?? '') ?>">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Alamat</label>
-                                <input type="text" name="alamat" class="form-input"
-                                    value="<?= htmlspecialchars($editData['alamat'] ?? '') ?>">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Status</label>
-                                <select name="status" class="form-input">
-                                    <option value="aktif"    <?= ($editData['status'] ?? '') === 'aktif'    ? 'selected' : '' ?>>Aktif</option>
-                                    <option value="nonaktif" <?= ($editData['status'] ?? '') === 'nonaktif' ? 'selected' : '' ?>>Nonaktif</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="ri-save-line"></i> Simpan Perubahan
-                            </button>
-                            <a href="pengelolaan_member.php" class="btn btn-ghost">Batal</a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <!-- FORM TAMBAH -->
-            <?php if ($showTambah && !$editData): ?>
-            <div class="form-card">
-                <div class="form-card-header"><i class="ri-user-add-line"></i> Tambah Member Baru</div>
-                <div class="form-card-body">
-                    <form method="POST" action="">
-                        <input type="hidden" name="action" value="tambah">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="form-label">Nama / Username *</label>
-                                <input type="text" name="username" class="form-input" placeholder="Nama lengkap" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Email *</label>
-                                <input type="email" name="email" class="form-input" placeholder="email@example.com" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">No. Anggota</label>
-                                <input type="text" name="no_anggota" class="form-input" placeholder="Nomor anggota">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">No. Telepon</label>
-                                <input type="text" name="no_telepon" class="form-input" placeholder="08xxxxxxxxxx">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Alamat</label>
-                                <input type="text" name="alamat" class="form-input" placeholder="Alamat lengkap">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Status</label>
-                                <select name="status" class="form-input">
-                                    <option value="aktif">Aktif</option>
-                                    <option value="nonaktif">Nonaktif</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="ri-save-line"></i> Simpan Member
-                            </button>
-                            <a href="pengelolaan_member.php" class="btn btn-ghost">Batal</a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <?php endif; ?>
-
-        </div>
+  <aside class="w-64 bg-brandLight flex flex-col border-r border-gray-300">
+    <div class="h-20 flex items-center px-6 border-b border-gray-300 border-opacity-50">
+      <h1 class="text-2xl font-bold tracking-wide text-black"><span class="text-3xl">P</span>usataKita</h1>
     </div>
-</div>
+    <nav class="flex-1 py-6 px-4 space-y-2 overflow-y-auto font-medium text-sm">
+      <a href="dashboard.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+        <i class="fas fa-home w-6 text-center mr-3"></i> Dashboard
+      </a>
+      <a href="pgl_buku.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+        <i class="fas fa-book w-6 text-center mr-3"></i> Pengelolaan Buku
+      </a>
+      <a href="pengelolaan_member.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+        <i class="fas fa-user-friends w-6 text-center mr-3"></i> Pengelolaan Member
+      </a>
+      <a href="#" class="flex items-center px-4 py-3 bg-brandDark text-white rounded-lg shadow-md">
+        <i class="fas fa-clock w-6 text-center mr-3"></i> Kelola Peminjaman
+      </a>
+      <a href="kelola_pengembalian.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+        <i class="fas fa-exchange-alt w-6 text-center mr-3"></i> Kelola Pengembalian
+      </a>
+      <a href="kelola_denda.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+        <i class="fas fa-exclamation-circle w-6 text-center mr-3"></i> Kelola Denda
+      </a>
+      <a href="laporan.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+        <i class="fas fa-clipboard-list w-6 text-center mr-3"></i> Laporan
+      </a>
+      <div class="pt-8">
+        <a href="logout.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+          <i class="fas fa-sign-out-alt w-6 text-center mr-3"></i> Log Out
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="flex-1 flex flex-col bg-white overflow-y-auto">
+    <header class="h-20 flex justify-between items-center px-8 border-b border-gray-200 bg-white sticky top-0 z-10">
+      <h2 class="text-3xl font-bold text-black">Kelola Peminjaman</h2>
+      <div class="flex flex-col items-center">
+        <i class="fas fa-user-circle text-3xl text-black"></i>
+        <span class="text-sm font-medium mt-1">Admin</span>
+      </div>
+    </header>
+
+    <div class="p-8 max-w-6xl w-full mx-auto">
+
+      <?php if (!empty($message)): ?>
+        <div class="mb-4 p-3 rounded bg-green-100 text-green-700 border border-green-200 text-sm font-medium">
+          <?php echo $message; ?>
+        </div>
+      <?php endif; ?>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-brandDark rounded-md p-5 text-white shadow-sm flex flex-col justify-center">
+          <p class="text-xs text-gray-300 mb-1">Total Aktif</p>
+          <p class="text-4xl font-bold"><?php echo $stat_aktif; ?></p>
+        </div>
+        <div class="bg-brandDanger rounded-md p-5 text-white shadow-sm flex flex-col justify-center">
+          <p class="text-xs text-red-200 mb-1">Terlambat</p>
+          <p class="text-4xl font-bold"><?php echo $stat_terlambat; ?></p>
+        </div>
+        <div class="bg-brandCardBg rounded-md p-5 text-brandDark shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold mb-1">Dikembalikan</p>
+          <p class="text-4xl font-bold"><?php echo $stat_dikembalikan; ?></p>
+        </div>
+        <div class="bg-brandCardBg rounded-md p-5 text-brandDark shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold mb-1">Menunggu Konfirmasi</p>
+          <p class="text-4xl font-bold"><?php echo $stat_menunggu; ?></p>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <form method="GET" class="w-full md:w-1/3 flex items-center border border-gray-300 rounded px-3 py-1.5 focus-within:border-brandDark transition-colors">
+          <i class="fas fa-search text-gray-400 mr-2 text-sm"></i>
+          <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Cari Member atau Buku..." class="bg-transparent outline-none w-full text-sm">
+        </form>
+      </div>
+
+      <div class="mb-2">
+        <h3 class="text-lg font-bold text-gray-800 mb-3">Daftar Peminjaman Aktif</h3>
+      </div>
+      <div class="bg-white rounded shadow-sm overflow-hidden mb-10 border border-gray-100">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-brandDark text-white">
+              <tr>
+                <th class="py-3 px-4 font-semibold text-center w-16">ID</th>
+                <th class="py-3 px-4 font-semibold">Anggota</th>
+                <th class="py-3 px-4 font-semibold">Buku Dipinjam</th>
+                <th class="py-3 px-4 font-semibold">Tgl Pinjam</th>
+                <th class="py-3 px-4 font-semibold">Tgl Kembali</th>
+                <th class="py-3 px-4 font-semibold text-center">Status</th>
+                <th class="py-3 px-4 font-semibold text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-gray-700">
+              <?php
+              if ($list_peminjaman && $list_peminjaman->num_rows > 0):
+                while ($row = $list_peminjaman->fetch_assoc()):
+                  $is_late = false;
+                  if ($row['status'] == 'dipinjam') {
+                    $tgl_pengembalian_time = strtotime($row['tgl_pengembalian']);
+                    $hari_ini_time = strtotime(date('Y-m-d'));
+                    if ($hari_ini_time > $tgl_pengembalian_time) {
+                      $is_late = true;
+                    }
+                  }
+                  $formatted_id = "#" . str_pad($row['id_peminjaman'], 3, '0', STR_PAD_LEFT);
+              ?>
+                  <tr class="hover:bg-gray-50">
+                    <td class="py-3 px-4 text-center font-mono text-xs text-gray-500 bg-gray-100 rounded-full inline-block m-2">
+                      <?php echo $formatted_id; ?>
+                    </td>
+                    <td class="py-3 px-4 text-black font-medium"><?php echo htmlspecialchars($row['anggota']); ?></td>
+                    <td class="py-3 px-4 text-gray-600"><?php echo htmlspecialchars($row['judul']); ?></td>
+                    <td class="py-3 px-4 text-gray-500"><?php echo date('d M Y', strtotime($row['tgl_pinjam'])); ?></td>
+                    <td class="py-3 px-4 text-gray-500 <?php echo $is_late ? 'text-red-500 font-bold' : ''; ?>">
+                      <?php echo $row['tgl_pengembalian'] ? date('d M Y', strtotime($row['tgl_pengembalian'])) : '-'; ?>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                      <?php if ($row['status'] == 'dikembalikan'): ?>
+                        <span class="px-3 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[10px] font-bold uppercase tracking-wider">Dikembalikan</span>
+                      <?php elseif ($is_late): ?>
+                        <span class="px-3 py-0.5 bg-red-100 text-red-600 rounded-full text-[10px] font-bold uppercase tracking-wider">Terlambat</span>
+                      <?php else: ?>
+                        <span class="px-3 py-0.5 bg-green-100 text-green-600 rounded-full text-[10px] font-bold uppercase tracking-wider">Dipinjam</span>
+                      <?php endif; ?>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                      <?php if ($row['status'] == 'dikembalikan'): ?>
+                        <button disabled class="px-3 py-1 bg-gray-200 text-gray-500 text-xs rounded-full font-medium cursor-not-allowed">Selesai</button>
+                      <?php elseif ($is_late): ?>
+                        <button onclick="window.location.href='#'" class="px-3 py-1 bg-brandDanger text-white text-xs rounded-full font-medium hover:bg-red-700">Denda</button>
+                      <?php else: ?>
+                        <form method="POST" action="" class="inline">
+                          <input type="hidden" name="action" value="kembalikan">
+                          <input type="hidden" name="id_peminjaman" value="<?php echo $row['id_peminjaman']; ?>">
+                          <button type="submit" class="px-3 py-1 bg-brandDark text-white text-xs rounded-full font-medium hover:bg-opacity-90">Kembalikan</button>
+                        </form>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php
+                endwhile;
+              else:
+                ?>
+                <tr>
+                  <td colspan="7" class="py-6 text-center text-gray-400 text-sm">Tidak ada data peminjaman aktif.</td>
+                </tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="mb-4 flex justify-between items-end border-b border-gray-200 pb-2">
+        <h3 class="text-lg font-bold text-gray-800">Konfirmasi Peminjaman Baru</h3>
+        <span class="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full"><?php echo $stat_menunggu; ?> Pending</span>
+      </div>
+      <div class="space-y-3 mb-10">
+        <?php
+        if ($list_menunggu && $list_menunggu->num_rows > 0):
+          while ($row = $list_menunggu->fetch_assoc()):
+            $inisial = strtoupper(substr($row['username'], 0, 2));
+        ?>
+            <div class="flex items-center justify-between bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-brandLight text-brandDark flex items-center justify-center font-bold text-sm"><?php echo $inisial; ?></div>
+                <div>
+                  <p class="font-bold text-sm text-black"><?php echo htmlspecialchars($row['username']); ?> (ID: <?php echo $row['id_siswa']; ?>)</p>
+                  <p class="text-xs text-gray-500">Buku: <?php echo htmlspecialchars($row['judul']); ?></p>
+                </div>
+              </div>
+              <div class="text-xs text-gray-400 mr-auto ml-10 hidden md:block">
+                Diminta: <?php echo date('d M Y', strtotime($row['tgl_pinjam'])); ?>
+              </div>
+              <div class="flex gap-2">
+                <form method="POST" action="" class="inline">
+                  <input type="hidden" name="action" value="setuju_pinjam">
+                  <input type="hidden" name="id_peminjaman" value="<?php echo $row['id_peminjaman']; ?>">
+                  <button type="submit" class="px-4 py-1.5 border border-green-500 text-green-600 rounded text-xs font-semibold hover:bg-green-50 transition-colors"><i class="fas fa-check mr-1"></i> Setuju</button>
+                </form>
+                <form method="POST" action="" class="inline">
+                  <input type="hidden" name="action" value="tolak_pinjam">
+                  <input type="hidden" name="id_peminjaman" value="<?php echo $row['id_peminjaman']; ?>">
+                  <button type="submit" class="px-4 py-1.5 border border-red-500 text-red-600 rounded text-xs font-semibold hover:bg-red-50 transition-colors"><i class="fas fa-times mr-1"></i> Tolak</button>
+                </form>
+              </div>
+            </div>
+          <?php
+          endwhile;
+        else:
+          ?>
+          <div class="text-center py-5 text-gray-400 text-sm border border-gray-200 rounded-lg bg-gray-50">
+            Tidak ada permintaan peminjaman yang menunggu.
+          </div>
+        <?php endif; ?>
+      </div>
+
+      <div class="mb-4 border-b border-gray-200 pb-2">
+        <h3 class="text-lg font-bold text-gray-800">Konfirmasi Perpanjangan</h3>
+      </div>
+      <div class="text-center py-5 text-gray-400 text-sm border border-gray-200 rounded-lg bg-gray-50 mb-10">
+        Fitur perpanjangan buku tidak tersedia dalam struktur database saat ini.
+      </div>
+
+    </div>
+  </main>
+
 </body>
+
 </html>

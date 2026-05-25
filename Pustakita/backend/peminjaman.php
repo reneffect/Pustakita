@@ -1,3 +1,60 @@
+<?php
+session_start();
+include 'database.php';
+
+if (!isset($_SESSION['siswa'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$id_siswa = $_SESSION['siswa'];
+$username = $_SESSION['username'] ?? 'Siswa';
+$id_buku = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+if ($id_buku == 0) {
+    header("Location: catalog.php");
+    exit();
+}
+
+// Handle Peminjaman
+$pinjam_success = false;
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['pinjam_buku'])) {
+    // Cek apakah sudah pinjam dan belum dikembalikan/ditolak
+    $cek_pinjam = mysqli_query($koneksi, "SELECT * FROM peminjaman WHERE siswa_id = $id_siswa AND buku_id = $id_buku AND status IN ('menunggu', 'dipinjam')");
+    if (mysqli_num_rows($cek_pinjam) == 0) {
+        $tgl_pinjam = date('Y-m-d');
+        $tgl_kembali = date('Y-m-d', strtotime('+7 days'));
+        // id_admin diisi 1 sementara sebagai default jika perlu admin penanggung jawab
+        $query_insert = "INSERT INTO peminjaman (id_admin, siswa_id, buku_id, tgl_pinjam, tgl_kembali, status) VALUES (1, $id_siswa, $id_buku, '$tgl_pinjam', '$tgl_kembali', 'menunggu')";
+        if (mysqli_query($koneksi, $query_insert)) {
+            $pinjam_success = true;
+        }
+    } else {
+        $error_pinjam = "Anda sudah meminjam buku ini dan belum dikembalikan.";
+    }
+}
+
+// Ambil data buku
+$queryBuku = "SELECT b.*, k.nama_kategori FROM buku b LEFT JOIN kategori k ON b.kategori_id = k.id_kategori WHERE b.id_buku = $id_buku";
+$resultBuku = mysqli_query($koneksi, $queryBuku);
+
+if (mysqli_num_rows($resultBuku) == 0) {
+    header("Location: catalog.php");
+    exit();
+}
+$buku = mysqli_fetch_assoc($resultBuku);
+
+// Determine gradient cover based on id
+$gradients = [
+    'linear-gradient(135deg,#1e3a5f,#2d6a9f)',
+    'linear-gradient(135deg,#7f1d1d,#b91c1c)',
+    'linear-gradient(135deg,#1e4d3e,#059669)',
+    'linear-gradient(135deg,#78350f,#d97706)',
+    'linear-gradient(135deg,#4a044e,#9333ea)',
+    'linear-gradient(135deg,#0c4a6e,#0284c7)'
+];
+$grad = $gradients[$id_buku % count($gradients)];
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -76,13 +133,17 @@
       <a href="history.php">History</a>
       <a href="profile.php">Profil</a>
     </div>
-   <div class="nav-cart">
+    <div class="nav-cart">
       <a href="catalog.php">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 6.364L12 21.382 4.318 12.682a4.5 4.5 0 010-6.364z"/></svg>
       </a>
     </div>
-    <button class="btn-masuk">Login</button>
-    <button class="btn-login">Logout</button>
+    <?php if (isset($_SESSION['siswa'])): ?>
+      <span style="color:#111827;font-weight:600;font-size:14px;margin-right:15px;">👤 <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></span>
+      <a href="logout.php"><button class="btn-login">Logout</button></a>
+    <?php else: ?>
+      <a href="login.php"><button class="btn-masuk">Login</button></a>
+    <?php endif; ?>
   </div>
 </nav>
 
@@ -99,29 +160,40 @@
   <!-- BOOK DETAIL CARD -->
   <div class="book-detail-card">
     <div class="book-cover-wrap">
-      <div class="book-cover-img">
-          <img src="images.jpg" alt="Laskar Pelangi cover">
-        </div>
+      <div class="book-cover-img" style="background:<?php echo $grad; ?>; color:white; display:flex; align-items:center; justify-content:center; padding:0; text-align:center; font-weight:bold; height:100%; border-radius: 12px; overflow: hidden;">
+          <?php if (!empty($buku['foto'])): ?>
+              <img src="<?php echo htmlspecialchars($buku['foto']); ?>" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
+          <?php else: ?>
+              <span style="padding: 20px;"><?php echo htmlspecialchars($buku['judul']); ?></span>
+          <?php endif; ?>
+      </div>
     </div>
 
     <div class="book-divider"></div>
 
     <div class="book-info">
       <div>
-        <div class="book-author-name">Andrea Hirata</div>
-        <div class="book-title-name">Laskar Pelangi</div>
+        <div class="book-author-name"><?php echo htmlspecialchars($buku['penulis']); ?></div>
+        <div class="book-title-name"><?php echo htmlspecialchars($buku['judul']); ?></div>
         <div class="book-desc-label">Deskripsi</div>
         <div class="book-desc-text">
-          Novel karya Andrea Hirata ini menceritakan perjuangan sekelompok anak dari keluarga sederhana di Belitung dalam meraih pendidikan. Dengan segala keterbatasan, mereka tetap semangat belajar berkat bimbingan guru yang penuh dedikasi. Kisah ini mengajarkan tentang harapan, persahabatan, dan pentingnya pendidikan untuk mengubah masa depan.
+          <?php echo nl2br(htmlspecialchars($buku['deskripsi'] ?: 'Tidak ada deskripsi untuk buku ini.')); ?>
         </div>
       </div>
       <div class="book-actions">
-        <button class="btn-favorit">
-          <div class="heart-icon">❤️</div>
-          Tambahkan Favorit
-        </button>
-        <button class="btn-pinjam-action">Pinjam</button>
+        <form method="POST" action="" style="display: flex; gap: 10px; width: 100%;">
+            <button type="button" class="btn-favorit" style="flex: 1;">
+              <div class="heart-icon">❤️</div>
+              Tambahkan Favorit
+            </button>
+            <button type="submit" name="pinjam_buku" class="btn-pinjam-action" style="flex: 1;">Pinjam</button>
+        </form>
       </div>
+      <?php if (isset($error_pinjam)): ?>
+        <div style="color: #dc2626; margin-top: 15px; font-size: 14px; font-weight: 600; text-align: center; background: #fee2e2; padding: 10px; border-radius: 8px;">
+            <?php echo $error_pinjam; ?>
+        </div>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -234,27 +306,24 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    var pinjamBtn = document.querySelector('.btn-pinjam-action');
     var toast = document.createElement('div');
     toast.className = 'toast-popup';
     toast.innerHTML = '<strong>Selamat Peminjaman Anda, Berhasil</strong>' +
                       '<div class="toast-subtext">Peminjam Atas Nama :</div>' +
-                      '<div class="toast-name">-</div>';
+                      '<div class="toast-name"><?php echo htmlspecialchars($username); ?></div>';
     document.body.appendChild(toast);
 
     function showToast() {
       toast.classList.add('show');
-      clearTimeout(window.toastTimeout);
-      window.toastTimeout = setTimeout(function() {
+      setTimeout(function() {
         toast.classList.remove('show');
-      }, 4000);
+        window.location.href = 'history.php'; // redirect to history after success
+      }, 3000);
     }
 
-    if (pinjamBtn) {
-      pinjamBtn.addEventListener('click', function() {
-        showToast();
-      });
-    }
+    <?php if ($pinjam_success): ?>
+    showToast();
+    <?php endif; ?>
   });
 </script>
 </body>

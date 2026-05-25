@@ -1,3 +1,20 @@
+<?php
+session_start();
+include 'database.php';
+if (!isset($_SESSION['siswa'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Fetch Kategori
+$queryKategori = "SELECT * FROM kategori LIMIT 4";
+$resultKategori = mysqli_query($koneksi, $queryKategori);
+
+// Fetch Favorit for current user
+$id_siswa = $_SESSION['siswa'];
+$queryFavorit = "SELECT b.* FROM favorit f JOIN buku b ON f.id_buku = b.id_buku WHERE f.id_siswa = '$id_siswa' LIMIT 6";
+$resultFavorit = mysqli_query($koneksi, $queryFavorit);
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -19,15 +36,16 @@
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       Kategori
     </div>
-    <div class="nav-search">
+    <form action="catalog.php" method="GET" class="nav-search">
       <svg width="16" height="16" fill="none" stroke="#a0aec0" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
-      <input type="text" placeholder="Cari Produk...Judul Buku atau Nama Penulis">
-    </div>
+      <input type="text" name="q" placeholder="Cari Produk...Judul Buku atau Nama Penulis" style="border:none; outline:none; background:transparent; width:100%;">
+    </form>
   </div>
   <div class="nav-right">
     <div class="nav-links">
       <a href="home.php" class="active">Home</a>
       <a href="catalog.php">Catalog</a>
+      <a href="favorit.php">Favorit</a>
       <a href="history.php">History</a>
       <a href="profile.php">Profil</a>
     </div>
@@ -36,8 +54,12 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 6.364L12 21.382 4.318 12.682a4.5 4.5 0 010-6.364z"/></svg>
       </a>
     </div>
-    <button class="btn-masuk">Login</button>
-    <button class="btn-login">Logout</button>
+    <?php if (isset($_SESSION['siswa'])): ?>
+      <span style="color:#fff;font-weight:600;font-size:14px;">👤 <?php echo htmlspecialchars($_SESSION['username']); ?></span>
+      <a href="logout.php"><button class="btn-login">Logout</button></a>
+    <?php else: ?>
+      <a href="login.php"><button class="btn-masuk">Login</button></a>
+    <?php endif; ?>
   </div>
 </nav>
 
@@ -88,30 +110,25 @@
 <div class="section">
   <div class="section-title">Kategori Jenis – Jenis Buku</div>
   <div class="kategori-grid">
-    <div class="kategori-card">
-      <div class="kategori-bg cat-cerita" style="display:flex;align-items:center;justify-content:center;">
-        <div style="font-size:50px;">📚</div>
-      </div>
-      <div class="kategori-label">Cerita Rakyat</div>
-    </div>
-    <div class="kategori-card">
-      <div class="kategori-bg cat-pelajaran" style="display:flex;align-items:center;justify-content:center;">
-        <div style="font-size:50px;">📖</div>
-      </div>
-      <div class="kategori-label">Buku Paket</div>
-    </div>
-    <div class="kategori-card">
-      <div class="kategori-bg cat-novel" style="display:flex;align-items:center;justify-content:center;">
-        <div style="font-size:50px;">📕</div>
-      </div>
-      <div class="kategori-label">Novel</div>
-    </div>
-    <div class="kategori-card">
-      <div class="kategori-bg cat-kamus" style="display:flex;align-items:center;justify-content:center;">
-        <div style="font-size:50px;">📘</div>
-      </div>
-      <div class="kategori-label">Kamus</div>
-    </div>
+    <?php
+    $bg_classes = ['cat-cerita', 'cat-pelajaran', 'cat-novel', 'cat-kamus'];
+    $emojis = ['📚', '📖', '📕', '📘'];
+    $i = 0;
+    while ($row = mysqli_fetch_assoc($resultKategori)) {
+        $bg = isset($bg_classes[$i]) ? $bg_classes[$i] : 'cat-cerita';
+        $emoji = isset($emojis[$i]) ? $emojis[$i] : '📚';
+        echo '<div class="kategori-card">';
+        echo '  <div class="kategori-bg ' . $bg . '" style="display:flex;align-items:center;justify-content:center;">';
+        echo '    <div style="font-size:50px;">' . $emoji . '</div>';
+        echo '  </div>';
+        echo '  <div class="kategori-label">' . htmlspecialchars($row['nama_kategori']) . '</div>';
+        echo '</div>';
+        $i++;
+    }
+    if (mysqli_num_rows($resultKategori) == 0) {
+        echo "<p>Belum ada kategori.</p>";
+    }
+    ?>
   </div>
 </div>
 
@@ -203,51 +220,38 @@
       <div class="favorit-mascot">🌻</div>
     </div>
     <div class="favorit-books">
-      <div class="favorit-book-card">
-        <div class="favorit-book-cover" style="background:linear-gradient(135deg,#1e3a5f,#2d6a9f);">
-          <img src="images/5-cm.jpg" alt="5 cm cover">
-        </div>
-        <div class="favorit-book-title">Nuannisa Sar</div>
-        <div style="font-size:10px;font-weight:700;color:#1a202c;text-align:center;">5726 MDPL</div>
-      </div>
-      <div class="favorit-book-card">
-        <div class="favorit-book-cover" style="background:linear-gradient(135deg,#7f1d1d,#b91c1c);">
-          <img src="images/pulang.jpg" alt="Pulang cover">
-        </div>
-        <div class="favorit-book-title">Tere Liye</div>
-        <div style="font-size:10px;font-weight:700;color:#1a202c;text-align:center;">Pulang</div>
-      </div>
-      <div class="favorit-book-card">
-        <div class="favorit-book-cover" style="background:linear-gradient(135deg,#1e4d3e,#059669);">
-          <img src="images/bandung-after-rain.jpg" alt="Bandung After Rain cover">
-        </div>
-        <div class="favorit-book-title">Rully</div>
-        <div style="font-size:10px;font-weight:700;color:#1a202c;text-align:center;">Bandung After Rain</div>
-      </div>
-      <div class="favorit-book-card">
-        <div class="favorit-book-cover" style="background:linear-gradient(135deg,#78350f,#d97706);">
-          <img src="images/laskar-pelangi.jpg" alt="Laskar Pelangi cover">
-        </div>
-        <div class="favorit-book-title">Andrea Hirata</div>
-        <div style="font-size:10px;font-weight:700;color:#1a202c;text-align:center;">Laskar Pelangi</div>
-      </div>
-      <div class="favorit-book-card">
-        <div class="favorit-book-cover" style="background:linear-gradient(135deg,#4a044e,#9333ea);">
-          <img src="images/dilan-milea-1990.jpg" alt="Dilan Milea 1990 cover">
-        </div>
-        <div class="favorit-book-title">Pidi Baiq</div>
-        <div style="font-size:10px;font-weight:700;color:#1a202c;text-align:center;">Dilan Milea 1990</div>
-      </div>
-      <div class="favorit-book-card">
-        <div class="favorit-book-cover" style="background:linear-gradient(135deg,#0c4a6e,#0284c7);">
-          <img src="images/perahu-kertas.jpg" alt="Perahu Kertas cover">
-        </div>
-        <div class="favorit-book-title">Dee Lestari</div>
-        <div style="font-size:10px;font-weight:700;color:#1a202c;text-align:center;">Perahu Kertas</div>
-      </div>
+      <?php
+      $gradients = [
+          'linear-gradient(135deg,#1e3a5f,#2d6a9f)',
+          'linear-gradient(135deg,#7f1d1d,#b91c1c)',
+          'linear-gradient(135deg,#1e4d3e,#059669)',
+          'linear-gradient(135deg,#78350f,#d97706)',
+          'linear-gradient(135deg,#4a044e,#9333ea)',
+          'linear-gradient(135deg,#0c4a6e,#0284c7)'
+      ];
+      $j = 0;
+      while ($row = mysqli_fetch_assoc($resultFavorit)) {
+          $grad = $gradients[$j % count($gradients)];
+          echo '<div class="favorit-book-card">';
+          echo '  <div class="favorit-book-cover" style="background:' . $grad . '; display:flex; align-items:center; justify-content:center; color:white; font-size:12px; text-align:center; padding:0; overflow: hidden;">';
+          if (!empty($row['foto'])) {
+              echo '    <img src="' . htmlspecialchars($row['foto']) . '" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">';
+          } else {
+              echo '    <span style="opacity:0.8; padding: 10px;">' . htmlspecialchars($row['judul']) . '</span>';
+          }
+          echo '  </div>';
+          echo '  <div class="favorit-book-title">' . htmlspecialchars($row['penulis']) . '</div>';
+          echo '  <div style="font-size:10px;font-weight:700;color:#1a202c;text-align:center;margin-top:4px;">' . htmlspecialchars($row['judul']) . '</div>';
+          echo '</div>';
+          $j++;
+      }
+      if (mysqli_num_rows($resultFavorit) == 0) {
+          echo "<p style='color:#666; font-size:14px; text-align:center; width:100%; grid-column:1/-1;'>Anda belum menambahkan buku favorit.</p>";
+      }
+      ?>
     </div>
   </div>
-  <div class="btn-lihat"><a href="#">Lihat Selengkapnya</a></div>
+  <div class="btn-lihat"><a href="favorit.php">Lihat Selengkapnya</a></div>
 </div>
 
 <!-- TENTANG KAMI -->

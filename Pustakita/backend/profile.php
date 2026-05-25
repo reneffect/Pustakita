@@ -1,5 +1,30 @@
 <?php
+session_start();
+include 'database.php';
 
+if (!isset($_SESSION['siswa'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$id_siswa = $_SESSION['siswa'];
+
+// Fetch user data
+$query = mysqli_query($koneksi, "SELECT * FROM siswa WHERE id_siswa = $id_siswa");
+$user = mysqli_fetch_assoc($query);
+
+// Fetch active borrowings
+$query_pinjam = mysqli_query($koneksi, "
+    SELECT p.*, b.judul, b.penulis, b.id_buku 
+    FROM peminjaman p 
+    JOIN buku b ON p.buku_id = b.id_buku 
+    WHERE p.siswa_id = $id_siswa AND p.status IN ('menunggu', 'dipinjam')
+    ORDER BY p.tgl_pinjam DESC
+");
+$peminjaman_aktif = [];
+while ($row = mysqli_fetch_assoc($query_pinjam)) {
+    $peminjaman_aktif[] = $row;
+}
 ?>
 
 <!DOCTYPE html>
@@ -53,6 +78,7 @@
       font-size: 72px;
       color: #1e3a8a;
       font-weight: 800;
+      text-transform: uppercase;
     }
     .profile-photo-label {
       position: absolute;
@@ -90,6 +116,7 @@
       border-radius: 18px;
       padding: 20px;
       box-shadow: 0 10px 30px rgba(15,23,42,0.06);
+      margin-bottom: 20px;
     }
     .loan-cover {
       width: 96px;
@@ -100,10 +127,15 @@
       background: #f3f4f6;
       display:flex;align-items:center;justify-content:center;
       padding:6px;
+      color: white;
+      font-weight: bold;
+      text-align: center;
+      font-size: 14px;
     }
-    .loan-cover img { width:100%; height:100%; object-fit:cover; display:block }
     .loan-details { flex:1 }
-    .loan-meta { background:#fef2f2; padding:18px; border-radius:12px }
+    .loan-meta { background:#fef2f2; padding:18px; border-radius:12px; margin-bottom: 14px; }
+    .loan-meta.status-menunggu { background: #fffbeb; }
+    .loan-meta.status-dipinjam { background: #fef2f2; }
     .loan-meta .meta-row { margin-bottom:10px; color:#334155 }
     .loan-actions { display:flex; gap:12px; align-items:center; margin-top:12px }
     .btn-perpanjang { background:#16a34a; color:white; border:none; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer }
@@ -245,10 +277,19 @@
     .modal-button.primary {
       background: #4338ca;
       color: white;
+      text-decoration: none;
     }
     .modal-button.secondary {
       background: #f1f5f9;
       color: #334155;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      background: white;
+      border-radius: 18px;
+      color: #64748b;
+      font-style: italic;
     }
     @media (max-width: 860px) {
       .profile-card {
@@ -281,6 +322,7 @@
     <div class="nav-links">
       <a href="home.php">Home</a>
       <a href="catalog.php">Catalog</a>
+      <a href="favorit.php">Favorit</a>
       <a href="history.php">History</a>
       <a href="profile.php" class="active">Profil</a>
     </div>
@@ -289,8 +331,12 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 6.364L12 21.382 4.318 12.682a4.5 4.5 0 010-6.364z"/></svg>
       </a>
     </div>
-    <button class="btn-masuk">Login</button>
-    <button class="btn-login">Logout</button>
+    <?php if (isset($_SESSION['siswa'])): ?>
+      <span style="color:#111827;font-weight:600;font-size:14px;margin-right:15px;">👤 <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></span>
+      <a href="logout.php"><button class="btn-login">Logout</button></a>
+    <?php else: ?>
+      <a href="login.php"><button class="btn-masuk">Login</button></a>
+    <?php endif; ?>
   </div>
 </nav>
 
@@ -298,10 +344,10 @@
 <div class="profile-section">
   <div class="profile-card" style="padding-left:120px;">
     <div class="profile-photo small" id="profilePhoto">
-      <span>IR</span>
+      <span><?php echo strtoupper(substr($user['username'], 0, 2)); ?></span>
     </div>
     <div class="profile-details">
-      <h1>Isabella Rosalyta</h1>
+      <h1><?php echo htmlspecialchars($user['username']); ?></h1>
       <p>Selamat datang kembali di PustaKita.</p>
       <button class="btn-edit-profile" id="openProfileData">Lihat Data Profil</button>
     </div>
@@ -317,65 +363,96 @@
     </div>
     <div class="modal-row">
       <div>
-        <label>Nama</label>
-        <span>Isabella Rosalyta</span>
-      </div>
-      <div>
-        <label>ID Anggota</label>
-        <span>123456</span>
+        <label>Username</label>
+        <span><?php echo htmlspecialchars($user['username']); ?></span>
       </div>
       <div>
         <label>Email</label>
-        <span>user@email.com</span>
+        <span><?php echo htmlspecialchars($user['email'] ?? '-'); ?></span>
       </div>
       <div>
-        <label>No. HP</label>
-        <span>0812xxxxxxx</span>
+        <label>Kelas</label>
+        <span><?php echo htmlspecialchars($user['kelas'] ?? '-'); ?></span>
+      </div>
+      <div>
+        <label>Jurusan</label>
+        <span><?php echo htmlspecialchars($user['jurusan'] ?? '-'); ?></span>
       </div>
     </div>
     <div class="modal-actions">
       <button class="modal-button secondary" id="closeProfileButton">Tutup</button>
-      <a class="modal-button primary" href="edit-profile.html">Edit Profile</a>
+      <a class="modal-button primary" href="edit-profile.php">Edit Profile</a>
     </div>
   </div>
 </div>
 
-<!-- PEMINJAMAN AKTIF (moved above profile card for visibility) -->
+<!-- PEMINJAMAN AKTIF -->
 <div class="loan-section">
   <div class="section-title">Peminjaman Aktif</div>
-  <div class="loan-card">
-    <div class="loan-cover">
-      <img src="images/laskar-pelangi.jpg" alt="Laskar Pelangi">
+  
+  <?php if (empty($peminjaman_aktif)): ?>
+    <div class="empty-state">
+      Tidak ada peminjaman buku yang sedang berlangsung.
     </div>
-    <div class="loan-details">
-      <div class="loan-meta">
-        <div class="meta-row"><strong>Nama Peminjam :</strong> Isabella Rosalyta</div>
-        <div class="meta-row"><strong>Judul Buku :</strong> Laskar Pelangi</div>
-        <div class="meta-row"><strong>Tanggal Pinjam :</strong> 1 Mei 2026</div>
-        <div class="meta-row"><strong>Batas Kembali :</strong> 7 Mei 2026</div>
-        <div class="loan-actions">
-          <button class="btn-perpanjang" id="reqPerpanjang">Minta Perpanjangan</button>
-          <div style="margin-left:auto;color:#6b7280;font-weight:700">Status: Aktif</div>
-        </div>
+  <?php else: ?>
+    <?php foreach ($peminjaman_aktif as $pinjam): 
+        $gradients = [
+            'linear-gradient(135deg,#1e3a5f,#2d6a9f)',
+            'linear-gradient(135deg,#7f1d1d,#b91c1c)',
+            'linear-gradient(135deg,#1e4d3e,#059669)',
+            'linear-gradient(135deg,#78350f,#d97706)',
+            'linear-gradient(135deg,#4a044e,#9333ea)',
+            'linear-gradient(135deg,#0c4a6e,#0284c7)'
+        ];
+        $grad = $gradients[$pinjam['id_buku'] % count($gradients)];
+        
+        $status_class = $pinjam['status'] == 'menunggu' ? 'status-menunggu' : 'status-dipinjam';
+        $status_text = $pinjam['status'] == 'menunggu' ? 'Menunggu Konfirmasi' : 'Aktif (Dipinjam)';
+    ?>
+    <div class="loan-card">
+      <div class="loan-cover" style="background: <?php echo $grad; ?>;">
+        <?php echo htmlspecialchars($pinjam['judul']); ?>
       </div>
-      <div style="height:14px"></div>
-      <div class="loan-meta" style="background:#fee2e2">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;color:#b91c1c">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b91c1c">
-            <circle cx="12" cy="12" r="9" stroke-width="2"/>
-            <path d="M12 7v6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-            <path d="M12 17h.01" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-          </svg>
-          <strong>Denda</strong>
+      <div class="loan-details">
+        <div class="loan-meta <?php echo $status_class; ?>">
+          <div class="meta-row"><strong>Nama Peminjam :</strong> <?php echo htmlspecialchars($user['username']); ?></div>
+          <div class="meta-row"><strong>Judul Buku :</strong> <?php echo htmlspecialchars($pinjam['judul']); ?></div>
+          <div class="meta-row"><strong>Tanggal Pinjam :</strong> <?php echo date('d M Y', strtotime($pinjam['tgl_pinjam'])); ?></div>
+          <?php if ($pinjam['tgl_pengembalian']): ?>
+            <div class="meta-row"><strong>Batas Kembali :</strong> <?php echo date('d M Y', strtotime($pinjam['tgl_pengembalian'])); ?></div>
+          <?php endif; ?>
+          <div class="loan-actions">
+            <?php if ($pinjam['status'] == 'dipinjam'): ?>
+              <button class="btn-perpanjang reqPerpanjangBtn">Minta Perpanjangan</button>
+            <?php endif; ?>
+            <div style="margin-left:auto;color:#6b7280;font-weight:700">Status: <?php echo $status_text; ?></div>
+          </div>
         </div>
-        <div class="meta-row">Terlambat 2 Hari</div>
-        <div class="meta-row">Total Denda = Rp 10.000</div>
+        
+        <?php 
+        // Contoh denda jika terlambat (hanya simulasi tampilan, untuk real bisa dihitung dari tgl_kembali)
+        if ($pinjam['status'] == 'dipinjam' && $pinjam['tgl_pengembalian'] && strtotime(date('Y-m-d')) > strtotime($pinjam['tgl_pengembalian'])): 
+            $terlambat = floor((strtotime(date('Y-m-d')) - strtotime($pinjam['tgl_pengembalian'])) / (60 * 60 * 24));
+            $denda = $terlambat * 5000;
+        ?>
+        <div class="loan-meta" style="background:#fee2e2">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;color:#b91c1c">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b91c1c">
+              <circle cx="12" cy="12" r="9" stroke-width="2"/>
+              <path d="M12 7v6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <path d="M12 17h.01" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+            </svg>
+            <strong>Denda</strong>
+          </div>
+          <div class="meta-row">Terlambat <?php echo $terlambat; ?> Hari</div>
+          <div class="meta-row">Total Denda = Rp <?php echo number_format($denda, 0, ',', '.'); ?></div>
+        </div>
+        <?php endif; ?>
       </div>
     </div>
-  </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
 </div>
-
-
 
 <footer>
   <div class="footer-main">
@@ -428,24 +505,26 @@
     profileModalOverlay.classList.remove('active');
   }
 
-  profilePhoto.addEventListener('click', openModal);
-  openProfileData.addEventListener('click', openModal);
-  closeProfileModal.addEventListener('click', closeModal);
-  closeProfileButton.addEventListener('click', closeModal);
-  profileModalOverlay.addEventListener('click', function(event) {
-    if (event.target === profileModalOverlay) {
-      closeModal();
-    }
-  });
+  if (profilePhoto) profilePhoto.addEventListener('click', openModal);
+  if (openProfileData) openProfileData.addEventListener('click', openModal);
+  if (closeProfileModal) closeProfileModal.addEventListener('click', closeModal);
+  if (closeProfileButton) closeProfileButton.addEventListener('click', closeModal);
+  if (profileModalOverlay) {
+    profileModalOverlay.addEventListener('click', function(event) {
+      if (event.target === profileModalOverlay) {
+        closeModal();
+      }
+    });
+  }
 
   // Perpanjangan request handler
-  const reqPerpanjang = document.getElementById('reqPerpanjang');
-  if (reqPerpanjang) {
-    reqPerpanjang.addEventListener('click', function() {
+  const reqPerpanjangBtns = document.querySelectorAll('.reqPerpanjangBtn');
+  reqPerpanjangBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
       // disable button and show confirmation text
-      reqPerpanjang.disabled = true;
-      reqPerpanjang.textContent = 'Permintaan Dikirim';
-      reqPerpanjang.style.background = '#059669';
+      this.disabled = true;
+      this.textContent = 'Permintaan Dikirim';
+      this.style.background = '#059669';
       // optional: brief toast
       const toast = document.createElement('div');
       toast.textContent = 'Permintaan perpanjangan dikirim.';
@@ -460,7 +539,7 @@
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 3000);
     });
-  }
+  });
 </script>
 </body>
 </html>
