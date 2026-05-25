@@ -100,7 +100,7 @@ $populer = $conn->query($q_populer);
       </a>
 
       <div class="pt-8">
-        <a href="#" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+        <a href="Login.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
           <i class="fas fa-sign-out-alt w-6 text-center mr-3"></i>
           Log Out
         </a>

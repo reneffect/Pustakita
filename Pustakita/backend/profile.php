@@ -342,7 +342,7 @@ while ($row = mysqli_fetch_assoc($query_pinjam)) {
 
 <!-- PROFILE SUMMARY (minimal) -->
 <div class="profile-section">
-  <div class="profile-card" style="padding-left:120px;">
+  <div class="profile-card">
     <div class="profile-photo small" id="profilePhoto">
       <span><?php echo strtoupper(substr($user['username'], 0, 2)); ?></span>
     </div>
