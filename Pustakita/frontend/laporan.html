@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Laporan Perpustakaan</title>
+
+<!-- FONT AWESOME -->
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+    background:#f3f3f3;
+}
+
+/* CONTAINER */
+.container{
+    display:flex;
+    min-height:100vh;
+}
+
+/* SIDEBAR */
+.sidebar{
+    width:250px;
+    background:#c8c6ee;
+    padding:20px;
+}
+
+.logo{
+    font-size:40px;
+    font-weight:bold;
+    margin-bottom:40px;
+}
+
+.logo span{
+    font-size:20px;
+}
+
+.menu{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+
+.menu a{
+    text-decoration:none;
+    color:#111;
+    padding:14px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    transition:0.3s;
+}
+
+.menu a:hover{
+    background:#1d1c63;
+    color:white;
+}
+
+.menu .active{
+    background:#05045e;
+    color:white;
+}
+
+/* MAIN */
+.main{
+    flex:1;
+    padding:25px;
+}
+
+/* TOPBAR */
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:25px;
+}
+
+.topbar h1{
+    font-size:40px;
+}
+
+.profile{
+    text-align:center;
+}
+
+.profile i{
+    font-size:38px;
+}
+
+.profile p{
+    font-size:14px;
+}
+
+/* CARDS */
+.cards{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:15px;
+    margin-bottom:20px;
+}
+
+.card{
+    background:#4a4aa7;
+    color:white;
+    padding:18px;
+    border-radius:14px;
+}
+
+.card:nth-child(2){
+    background:#35358a;
+}
+
+.card:nth-child(3){
+    background:#8d8bd6;
+}
+
+.card:nth-child(4){
+    background:#b2b1ec;
+}
+
+.card h2{
+    font-size:32px;
+    margin-top:10px;
+}
+
+.card p{
+    margin-top:8px;
+    font-size:14px;
+}
+
+/* SEARCH */
+.search-box{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.search-box input{
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    outline:none;
+}
+
+.search-box button{
+    background:#1d1c63;
+    color:white;
+    border:none;
+    padding:12px 20px;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+/* TABLE */
+.table-box{
+    background:white;
+    border-radius:14px;
+    padding:18px;
+    margin-bottom:20px;
+    overflow:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th{
+    background:#f4f4f8;
+    padding:12px;
+    text-align:left;
+    font-size:14px;
+}
+
+td{
+    padding:12px;
+    border-bottom:1px solid #eee;
+    font-size:14px;
+}
+
+tbody tr:hover{
+    background:#f7f7ff;
+}
+
+/* STATUS */
+.status{
+    padding:6px 12px;
+    border-radius:20px;
+    color:white;
+    font-size:12px;
+}
+
+.selesai{
+    background:#3bb56b;
+}
+
+.terlambat{
+    background:#e74c3c;
+}
+
+.dikembalikan{
+    background:#f0ad00;
+}
+
+/* BUTTON */
+.btn{
+    border:none;
+    padding:7px 12px;
+    border-radius:8px;
+    color:white;
+    cursor:pointer;
+    font-size:12px;
+}
+
+.btn-blue{
+    background:#2d2d7d;
+}
+
+.btn-red{
+    background:#d63031;
+}
+
+/* FOOTER TABLE */
+.table-footer{
+    margin-top:15px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:13px;
+    color:gray;
+}
+
+.pagination{
+    display:flex;
+    gap:8px;
+}
+
+.pagination button{
+    width:32px;
+    height:32px;
+    border:none;
+    border-radius:8px;
+    background:#eee;
+    cursor:pointer;
+}
+
+.pagination .active-page{
+    background:#1d1c63;
+    color:white;
+}
+
+/* BOTTOM TABLE */
+.bottom{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+/* RESPONSIVE */
+@media(max-width:1000px){
+
+    .cards{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .bottom{
+        grid-template-columns:1fr;
+    }
+
+}
+
+@media(max-width:700px){
+
+    .container{
+        flex-direction:column;
+    }
+
+    .sidebar{
+        width:100%;
+    }
+
+    .cards{
+        grid-template-columns:1fr;
+    }
+
+    .search-box{
+        flex-direction:column;
+    }
+
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+
+    <div class="logo">
+        P<span>ustakita</span>
+    </div>
+
+    <div class="menu">
+
+        <a href="#">
+            <i class="fa-solid fa-house"></i>
+            Dashboard
+        </a>
+
+        <a href="#">
+            <i class="fa-solid fa-book"></i>
+            Pengelolaan Buku
+        </a>
+
+        <a href="#">
+            <i class="fa-solid fa-user"></i>
+            Pengelolaan Member
+        </a>
+
+        <a href="#">
+            <i class="fa-solid fa-clock"></i>
+            Kelola Peminjaman
+        </a>
+
+        <a href="#">
+            <i class="fa-solid fa-arrow-left"></i>
+            Kelola Pengembalian
+        </a>
+
+        <a href="#">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            Kelola Denda
+        </a>
+
+        <a href="#" class="active">
+            <i class="fa-solid fa-file"></i>
+            Laporan
+        </a>
+
+        <a href="#">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            Log Out
+        </a>
+
+    </div>
+
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+
+        <h1>Laporan</h1>
+
+        <div class="profile">
+            <i class="fa-solid fa-circle-user"></i>
+            <p>Admin</p>
+        </div>
+
+    </div>
+
+    <!-- CARDS -->
+    <div class="cards">
+
+        <div class="card">
+            <small>Total Aktif</small>
+            <h2>87</h2>
+            <p>Laporan Peminjaman</p>
+        </div>
+
+        <div class="card">
+            <small>Terlambat</small>
+            <h2>12</h2>
+            <p>Laporan Pengembalian</p>
+        </div>
+
+        <div class="card">
+            <small>Dikembalikan Hari Ini</small>
+            <h2>5</h2>
+            <p>Laporan Denda & Pelanggaran</p>
+        </div>
+
+        <div class="card">
+            <small>Menunggu Konfirmasi</small>
+            <h2>3</h2>
+        </div>
+
+    </div>
+
+    <!-- SEARCH -->
+    <div class="search-box">
+
+        <input type="text"
+        placeholder="Cari anggota atau buku...">
+
+        <button>
+            <i class="fa-solid fa-file-pdf"></i>
+            Export PDF
+        </button>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-box">
+
+        <h3 style="margin-bottom:15px;">
+            Laporan Peminjaman
+        </h3>
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>ID</th>
+                    <th>Anggota</th>
+                    <th>Buku Dipinjam</th>
+                    <th>Tgl Pinjam</th>
+                    <th>Tgl Kembali</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <tr>
+
+                    <td>#001</td>
+
+                    <td style="display:flex; align-items:center; gap:10px;">
+
+                        
+
+                        <div>
+                            <b>Muhammad Jalal</b><br>
+                            <small>PKT-001</small>
+                        </div>
+
+                    </td>
+
+                    <td>Laskar Pelangi</td>
+                    <td>15 Jan 2025</td>
+                    <td>29 Jan 2025</td>
+
+                    <td>
+                        <span class="status selesai">
+                            Selesai
+                        </span>
+                    </td>
+
+                    <td>
+                        <button class="btn btn-blue">
+                            Kembalikan
+                        </button>
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <td>#002</td>
+
+                    <td style="display:flex; align-items:center; gap:10px;">
+
+                
+
+                        <div>
+                            <b>Noviel</b><br>
+                            <small>PKT-002</small>
+                        </div>
+
+                    </td>
+
+                    <td>Bumi Manusia</td>
+                    <td>10 Jan 2025</td>
+
+                    <td style="color:red; font-weight:bold;">
+                        24 Jan 2025
+                    </td>
+
+                    <td>
+                        <span class="status terlambat">
+                            Terlambat
+                        </span>
+                    </td>
+
+                    <td>
+                        <button class="btn btn-red">
+                            Denda
+                        </button>
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <td>#003</td>
+
+                    <td style="display:flex; align-items:center; gap:10px;">
+
+                       
+
+                        <div>
+                            <b>Zambrotta</b><br>
+                            <small>PKT-003</small>
+                        </div>
+
+                    </td>
+
+                    <td>Filosofi Teras</td>
+                    <td>18 Jan 2025</td>
+                    <td>01 Feb 2025</td>
+
+                    <td>
+                        <span class="status selesai">
+                            Selesai
+                        </span>
+                    </td>
+
+                    <td>
+                        <button class="btn btn-blue">
+                            Kembalikan
+                        </button>
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <td>#004</td>
+
+                    <td style="display:flex; align-items:center; gap:10px;">
+
+                        
+                        <div>
+                            <b>Arif</b><br>
+                            <small>PKT-004</small>
+                        </div>
+
+                    </td>
+
+                    <td>Perahu Kertas</td>
+                    <td>5 Jan 2025</td>
+                    <td>19 Jan 2025</td>
+
+                    <td>
+                        <span class="status dikembalikan">
+                            Dikembalikan
+                        </span>
+                    </td>
+
+                    <td>
+                        <button class="btn btn-blue">
+                            Selesai
+                        </button>
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+        <!-- FOOTER -->
+        <div class="table-footer">
+
+            <p>Menampilkan 1-4 dari 87 data</p>
+
+            <div class="pagination">
+                <button><</button>
+                <button class="active-page">1</button>
+                <button>2</button>
+                <button>></button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- BOTTOM -->
+    <div class="bottom">
+
+        <!-- TABLE PENGEMBALIAN -->
+        <div class="table-box">
+
+            <h3 style="margin-bottom:15px;">
+                Laporan Pengembalian
+            </h3>
+
+            <table>
+
+                <tr>
+                    <th>ID</th>
+                    <th>Anggota</th>
+                    <th>Buku</th>
+                    <th>Tgl Kembali</th>
+                    <th>Status</th>
+                </tr>
+
+                <tr>
+                    <td>#001</td>
+                    <td>Muhammad Jalal</td>
+                    <td>Laskar Pelangi</td>
+                    <td>29 Jan 2025</td>
+
+                    <td>
+                        <span class="status selesai">
+                            Selesai
+                        </span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>#002</td>
+                    <td>Noviel</td>
+                    <td>Bumi Manusia</td>
+                    <td>24 Jan 2025</td>
+
+                    <td>
+                        <span class="status terlambat">
+                            Terlambat
+                        </span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>#003</td>
+                    <td>Zambrotta</td>
+                    <td>Filosofi Teras</td>
+                    <td>01 Feb 2025</td>
+
+                    <td>
+                        <span class="status selesai">
+                            Selesai
+                        </span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>#004</td>
+                    <td>Arif</td>
+                    <td>Perahu Kertas</td>
+                    <td>19 Jan 2025</td>
+
+                    <td>
+                        <span class="status dikembalikan">
+                            Dikembalikan
+                        </span>
+                    </td>
+                </tr>
+
+            </table>
+
+        </div>
+
+        <!-- TABLE DENDA -->
+        <div class="table-box">
+
+            <h3 style="margin-bottom:15px;">
+                Laporan Denda & Pelanggaran
+            </h3>
+
+            <table>
+
+                <tr>
+                    <th>ID</th>
+                    <th>Anggota</th>
+                    <th>Buku Dipinjam</th>
+                    <th>Jumlah Denda</th>
+                    <th>Status</th>
+                </tr>
+
+                <tr>
+                    <td>#001</td>
+                    <td>Muhammad Jalal</td>
+                    <td>Laskar Pelangi</td>
+                    <td>Rp5.000</td>
+
+                    <td>
+                        <span class="status selesai">
+                            Lunas
+                        </span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>#002</td>
+                    <td>Noviel</td>
+                    <td>Bumi Manusia</td>
+
+                    <td style="color:red; font-weight:bold;">
+                        Rp10.000
+                    </td>
+
+                    <td>
+                        <span class="status terlambat">
+                            Belum Lunas
+                        </span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>#003</td>
+                    <td>Zambrotta</td>
+                    <td>Filosofi Teras</td>
+                    <td>Rp5.000</td>
+
+                    <td>
+                        <span class="status selesai">
+                            Lunas
+                        </span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>#004</td>
+                    <td>Arif</td>
+                    <td>Perahu Kertas</td>
+                    <td>Rp5.000</td>
+
+                    <td>
+                        <span class="status selesai">
+                            Lunas
+                        </span>
+                    </td>
+                </tr>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+</body>
+</html>
