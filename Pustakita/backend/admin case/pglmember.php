@@ -3,9 +3,9 @@
 // KONEKSI DATABASE
 // ==========================================
 $host = "localhost";
-$user = "root";       // Sesuaikan dengan username database Anda
-$pass = "";           // Sesuaikan dengan password database Anda
-$dbname   = "pustakita";  // Nama database
+$user = "root";       
+$pass = "";           
+$dbname   = "pustakita";  
 
 $conn = new mysqli($host, $user, $pass, $dbname);
 
@@ -13,7 +13,7 @@ if ($conn->connect_error) {
     die("Koneksi gagal: " . $conn->connect_error);
 }
 
-// Buat direktori 'uploads' jika belum ada untuk menyimpan foto
+// Buat direktori 'uploads'
 $upload_dir = 'uploads/';
 if (!is_dir($upload_dir)) {
     mkdir($upload_dir, 0777, true);
@@ -29,7 +29,7 @@ if (isset($_POST['action'])) {
     $email        = $conn->real_escape_string($_POST['email']);
     $kelas        = $conn->real_escape_string($_POST['kelas']);
     $jurusan      = $conn->real_escape_string($_POST['jurusan']);
-    $status_siswa = $conn->real_escape_string($_POST['status_siswa'] ?? 'Aktif'); // Menangkap status siswa
+    $status_siswa = $conn->real_escape_string($_POST['status_siswa'] ?? 'Aktif');
     $password     = $_POST['password'];
 
     // Handle File Upload Foto
@@ -42,7 +42,6 @@ if (isset($_POST['action'])) {
     }
 
     if ($_POST['action'] == 'create') {
-        // FITUR: Create Member
         $check_user = $conn->query("SELECT id_siswa FROM siswa WHERE username = '$username' OR email = '$email'");
 
         if ($check_user->num_rows > 0) {
@@ -61,7 +60,6 @@ if (isset($_POST['action'])) {
             }
         }
     } elseif ($_POST['action'] == 'update') {
-        // FITUR: Update Member
         $id_siswa = (int)$_POST['id_siswa'];
 
         $res_lama = $conn->query("SELECT foto FROM siswa WHERE id_siswa = $id_siswa");
@@ -72,7 +70,7 @@ if (isset($_POST['action'])) {
             "email = '$email'",
             "kelas = '$kelas'",
             "jurusan = '$jurusan'",
-            "status_siswa = '$status_siswa'" // Memperbarui status siswa
+            "status_siswa = '$status_siswa'"
         ];
 
         if (!empty($password)) {
@@ -117,7 +115,6 @@ $member_list = $conn->query($q_member);
 
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -142,32 +139,32 @@ $member_list = $conn->query($q_member);
 
     <aside class="w-64 bg-brandLight flex flex-col border-r border-gray-300">
         <div class="h-20 flex items-center px-6 border-b border-gray-300 border-opacity-50">
-            <h1 class="text-2xl font-bold tracking-wide text-black"><span class="text-3xl">P</span>usataKita</h1>
+            <h1 class="text-2xl font-bold tracking-wide text-black"><span class="text-3xl">P</span>ustaKita</h1>
         </div>
         <nav class="flex-1 py-6 px-4 space-y-2 overflow-y-auto font-medium">
             <a href="dashboard.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
                 <i class="fas fa-home w-6 text-center mr-3"></i> Dashboard
             </a>
-            <a href="pgl_buku.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+            <a href="pglbuku.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
                 <i class="fas fa-book w-6 text-center mr-3"></i> Pengelolaan Buku
             </a>
-            <a href="#" class="flex items-center px-4 py-3 bg-brandDark text-white rounded-lg">
+            <a href="pglmember.php" class="flex items-center px-4 py-3 bg-brandDark text-white rounded-lg">
                 <i class="fas fa-user-friends w-6 text-center mr-3"></i> Pengelolaan Member
             </a>
             <a href="kelola_peminjaman.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
                 <i class="fas fa-clock w-6 text-center mr-3"></i> Kelola Peminjaman
             </a>
-            <a href="#" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+            <a href="kelola_pengembalian.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
                 <i class="fas fa-exchange-alt w-6 text-center mr-3"></i> Kelola Pengembalian
             </a>
-            <a href="#" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+            <a href="kelola_denda.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
                 <i class="fas fa-exclamation-circle w-6 text-center mr-3"></i> Kelola Denda
             </a>
-            <a href="#" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+            <a href="laporan.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
                 <i class="fas fa-clipboard-list w-6 text-center mr-3"></i> Laporan
             </a>
             <div class="pt-8">
-                <a href="#" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+                <a href="logout.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
                     <i class="fas fa-sign-out-alt w-6 text-center mr-3"></i> Log Out
                 </a>
             </div>
@@ -269,6 +266,7 @@ $member_list = $conn->query($q_member);
         </div>
     </main>
 
+    <!-- ====================== MODAL TAMBAH ====================== -->
     <div id="addMemberModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
@@ -295,12 +293,29 @@ $member_list = $conn->query($q_member);
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Kelas</label>
-                        <input type="text" name="kelas" placeholder="Contoh: X, XI, XII" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-brandDark text-sm">
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Kelas *</label>
+                        <select name="kelas" required class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-brandDark text-sm bg-white">
+                            <option value="">Pilih Kelas</option>
+                            <option value="X">X</option>
+                            <option value="XI">XI</option>
+                            <option value="XII">XII</option>
+                        </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Jurusan</label>
-                        <input type="text" name="jurusan" placeholder="Contoh: RPL, TKJ" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-brandDark text-sm">
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Jurusan *</label>
+                        <select name="jurusan" required class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-brandDark text-sm bg-white">
+                            <option value="">Pilih Jurusan</option>
+                            <option value="RPL">RPL</option>
+                            <option value="TKJ">TKJ</option>
+                            <option value="SIJA">SIJA</option>
+                            <option value="DPIB">DPIB</option>
+                            <option value="TAB">TAB</option>
+                            <option value="OTO">OTO</option>
+                            <option value="TKRO">TKRO</option>
+                            <option value="TPM">TPM</option>
+                            <option value="TITL">TITL</option>
+                            <option value="KJIJ">KJIJ</option>
+                        </select>
                     </div>
                 </div>
 
@@ -325,6 +340,7 @@ $member_list = $conn->query($q_member);
         </div>
     </div>
 
+    <!-- ====================== MODAL EDIT ====================== -->
     <div id="editMemberModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
@@ -353,11 +369,26 @@ $member_list = $conn->query($q_member);
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Kelas</label>
-                        <input type="text" name="kelas" id="edit_kelas" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-brandDark text-sm">
+                        <select name="kelas" id="edit_kelas" required class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-brandDark text-sm bg-white">
+                            <option value="X">X</option>
+                            <option value="XI">XI</option>
+                            <option value="XII">XII</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Jurusan</label>
-                        <input type="text" name="jurusan" id="edit_jurusan" class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-brandDark text-sm">
+                        <select name="jurusan" id="edit_jurusan" required class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-brandDark text-sm bg-white">
+                            <option value="RPL">RPL</option>
+                            <option value="TKJ">TKJ</option>
+                            <option value="SIJA">SIJA</option>
+                            <option value="DPIB">DPIB</option>
+                            <option value="TAB">TAB</option>
+                            <option value="OTO">OTO</option>
+                            <option value="TKRO">TKRO</option>
+                            <option value="TPM">TPM</option>
+                            <option value="TITL">TITL</option>
+                            <option value="KJIJ">KJIJ</option>
+                        </select>
                     </div>
                 </div>
 
@@ -399,18 +430,10 @@ $member_list = $conn->query($q_member);
             document.getElementById('edit_email').value = data.email ?? '';
             document.getElementById('edit_kelas').value = data.kelas ?? '';
             document.getElementById('edit_jurusan').value = data.jurusan ?? '';
-
-            // Injeksi Status Siswa ke dropdown
-            const statusSelect = document.getElementById('edit_status_siswa');
-            if (data.status_siswa) {
-                statusSelect.value = data.status_siswa;
-            } else {
-                statusSelect.value = 'Aktif'; // Default fallback
-            }
+            document.getElementById('edit_status_siswa').value = data.status_siswa || 'Aktif';
 
             toggleModal('editMemberModal');
         }
     </script>
 </body>
-
 </html>

@@ -2,8 +2,16 @@
 // ==========================================
 // KONEKSI DATABASE
 // ==========================================
-include 'database.php';
-session_start();
+$host = "localhost";
+$user = "root";       // Sesuaikan dengan username database Anda
+$pass = "";           // Sesuaikan dengan password database Anda
+$dbname   = "pustakita";  // Nama database sesuai file SQL
+
+$conn = new mysqli($host, $user, $pass, $dbname);
+
+if ($conn->connect_error) {
+  die("Koneksi gagal: " . $conn->connect_error);
+}
 
 // ==========================================
 // QUERY STATISTIK DASHBOARD
@@ -14,7 +22,7 @@ $res_buku = $conn->query("SELECT COUNT(*) as total FROM buku");
 $tot_buku = $res_buku->fetch_assoc()['total'];
 
 // 2. Peminjaman Aktif (Status 'dipinjam')
-$res_pinjam = $conn->query("SELECT COUNT(*) as total FROM peminjaman WHERE status = 'dipinjam'");
+$res_pinjam = $conn->query("SELECT COUNT(*) as total FROM detail_peminjaman WHERE status = 'dipinjam'");
 $tot_pinjam = $res_pinjam->fetch_assoc()['total'];
 
 // 3. Total Member (Menghitung dari tabel siswa)
@@ -22,17 +30,17 @@ $res_member = $conn->query("SELECT COUNT(*) as total FROM siswa");
 $tot_member = $res_member->fetch_assoc()['total'];
 
 // 4. Aktivitas Terbaru (Menampilkan 3 peminjaman terakhir)
-$q_aktivitas = "SELECT p.id_peminjaman, b.judul, p.tgl_pinjam 
-                FROM peminjaman p 
-                JOIN buku b ON p.buku_id = b.id_buku 
-                ORDER BY p.tgl_pinjam DESC LIMIT 3";
+$q_aktivitas = "SELECT dp.id_peminjaman, b.judul, dp.tgl_pinjam 
+                FROM detail_peminjaman dp 
+                JOIN buku b ON dp.buku_id = b.id_buku 
+                ORDER BY dp.tgl_pinjam DESC LIMIT 3";
 $aktivitas = $conn->query($q_aktivitas);
 
 // 5. Buku Populer Minggu Ini (Buku yang paling sering dipinjam)
-$q_populer = "SELECT b.judul, b.penulis, COUNT(p.buku_id) as jumlah_pinjam 
-              FROM peminjaman p 
-              JOIN buku b ON p.buku_id = b.id_buku 
-              GROUP BY p.buku_id 
+$q_populer = "SELECT b.judul, b.penulis, COUNT(dp.buku_id) as jumlah_pinjam 
+              FROM detail_peminjaman dp 
+              JOIN buku b ON dp.buku_id = b.id_buku 
+              GROUP BY dp.buku_id 
               ORDER BY jumlah_pinjam DESC LIMIT 4";
 $populer = $conn->query($q_populer);
 ?>
@@ -70,7 +78,7 @@ $populer = $conn->query($q_populer);
     </div>
 
     <nav class="flex-1 py-6 px-4 space-y-2 overflow-y-auto font-medium">
-      <a href="dashboard.php" class="flex items-center px-4 py-3 bg-brandDark text-white rounded-lg">
+      <a href="#" class="flex items-center px-4 py-3 bg-brandDark text-white rounded-lg">
         <i class="fas fa-home w-6 text-center mr-3"></i>
         Dashboard
       </a>
@@ -82,7 +90,7 @@ $populer = $conn->query($q_populer);
         <i class="fas fa-user-friends w-6 text-center mr-3"></i>
         Pengelolaan Member
       </a>
-      <a href="kelola_pemijaman.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+      <a href="kelola_peminjaman.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
         <i class="fas fa-clock w-6 text-center mr-3"></i>
         Kelola Peminjaman
       </a>
@@ -100,7 +108,7 @@ $populer = $conn->query($q_populer);
       </a>
 
       <div class="pt-8">
-        <a href="Login.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+        <a href="logout.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
           <i class="fas fa-sign-out-alt w-6 text-center mr-3"></i>
           Log Out
         </a>

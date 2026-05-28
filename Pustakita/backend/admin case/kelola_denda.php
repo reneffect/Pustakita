@@ -26,7 +26,7 @@ if (isset($_POST['action'])) {
   // Aksi 1: Bayar Lunas (Cepat)
   if ($_POST['action'] == 'bayar') {
     $id_detail = (int)$_POST['id_detail'];
-    $sql = "UPDATE detail_peminjaman SET status_denda = 'lunas' WHERE id_detail = $id_detail";
+    $sql = "UPDATE peminjaman SET status_denda = 'lunas' WHERE id_detail = $id_detail";
     if ($conn->query($sql)) {
       $message = "Sukses: Denda berhasil dilunasi.";
     }
@@ -37,7 +37,7 @@ if (isset($_POST['action'])) {
     $jumlah_denda = (int)$_POST['jumlah_denda'];
     $status_denda = $conn->real_escape_string($_POST['status_denda']);
 
-    $sql = "UPDATE detail_peminjaman SET denda = $jumlah_denda, status_denda = '$status_denda' WHERE id_detail = $id_detail";
+    $sql = "UPDATE peminjaman SET denda = $jumlah_denda, status_denda = '$status_denda' WHERE id_detail = $id_detail";
     if ($conn->query($sql)) {
       $message = "Sukses: Data denda berhasil diperbarui.";
     }
@@ -48,19 +48,19 @@ if (isset($_POST['action'])) {
 // STATISTIK & QUERY UTAMA
 // ==========================================
 // Query Statistik atas (Sesuai Wireframe)
-$stat_aktif = $conn->query("SELECT COUNT(*) as total FROM peminjaman WHERE status = 'dipinjam'")->fetch_assoc()['total'] ?? 0;
-$stat_terlambat = $conn->query("SELECT COUNT(*) as total FROM peminjaman WHERE status = 'dipinjam' AND tgl_pengembalian < CURDATE()")->fetch_assoc()['total'] ?? 0;
-$stat_dikembalikan = $conn->query("SELECT COUNT(*) as total FROM peminjaman WHERE status = 'dikembalikan' AND tgl_dikembalikan = CURDATE()")->fetch_assoc()['total'] ?? 0;
-$stat_menunggu = $conn->query("SELECT COUNT(*) as total FROM peminjaman WHERE req_kembali = 'menunggu' OR status = 'menunggu'")->fetch_assoc()['total'] ?? 0;
+$stat_aktif = $conn->query("SELECT COUNT(*) as total FROM detail_peminjaman WHERE status = 'dipinjam'")->fetch_assoc()['total'] ?? 0;
+$stat_terlambat = $conn->query("SELECT COUNT(*) as total FROM detail_peminjaman WHERE status = 'dipinjam' AND tgl_pengembalian < CURDATE()")->fetch_assoc()['total'] ?? 0;
+$stat_dikembalikan = $conn->query("SELECT COUNT(*) as total FROM detail_peminjaman WHERE status = 'dikembalikan' AND tgl_dikembalikan = CURDATE()")->fetch_assoc()['total'] ?? 0;
+$stat_menunggu = $conn->query("SELECT COUNT(*) as total FROM detail_peminjaman WHERE req_kembali = 'menunggu' OR status = 'menunggu'")->fetch_assoc()['total'] ?? 0;
 
 // Pencarian Tabel Denda
 $search = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
 $q_denda = "
     SELECT dp.id_detail, p.id_peminjaman, s.username AS nama_anggota, s.id_siswa, b.judul AS judul_buku, 
            p.tgl_pinjam, p.tgl_pengembalian, dp.denda, dp.status_denda, p.status as status_pinjam
-    FROM detail_peminjaman dp
-    JOIN peminjaman p ON dp.id_peminjaman = p.id_peminjaman
-    JOIN siswa s ON p.siswa_id = s.id_siswa
+    FROM peminjaman dp
+    JOIN detail_peminjaman p ON dp.id_peminjaman = p.id_peminjaman
+    JOIN siswa s ON p.id_siswa = s.id_siswa
     JOIN buku b ON p.buku_id = b.id_buku
 ";
 if (!empty($search)) {
@@ -76,8 +76,8 @@ if (isset($_GET['edit'])) {
   $q_edit = "
         SELECT dp.*, s.username, s.id_siswa, b.judul, p.tgl_pinjam, p.tgl_pengembalian 
         FROM detail_peminjaman dp
-        JOIN peminjaman p ON dp.id_peminjaman = p.id_peminjaman
-        JOIN siswa s ON p.siswa_id = s.id_siswa
+        JOIN detail_peminjaman p ON dp.id_peminjaman = p.id_peminjaman
+        JOIN siswa s ON p.id_siswa = s.id_siswa
         JOIN buku b ON p.buku_id = b.id_buku
         WHERE dp.id_detail = $id_edit
     ";
@@ -114,33 +114,45 @@ if (isset($_GET['edit'])) {
 
   <aside class="w-64 bg-brandLight flex flex-col border-r border-gray-300">
     <div class="h-20 flex items-center px-6 border-b border-gray-300 border-opacity-50">
-      <h1 class="text-2xl font-bold tracking-wide text-black"><span class="text-3xl">P</span>usataKita</h1>
+      <h1 class="text-2xl font-bold tracking-wide text-black">
+        <span class="text-3xl">P</span>ustaKita
+      </h1>
     </div>
-    <nav class="flex-1 py-6 px-4 space-y-2 overflow-y-auto font-medium text-sm">
+
+    <nav class="flex-1 py-6 px-4 space-y-2 overflow-y-auto font-medium">
       <a href="dashboard.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
-        <i class="fas fa-home w-6 text-center mr-3"></i> Dashboard
+        <i class="fas fa-home w-6 text-center mr-3"></i>
+        Dashboard
       </a>
-      <a href="pengelolaan_buku.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
-        <i class="fas fa-book w-6 text-center mr-3"></i> Pengelolaan Buku
+      <a href="pglbuku.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+        <i class="fas fa-book w-6 text-center mr-3"></i>
+        Pengelolaan Buku
       </a>
-      <a href="pengelolaan_member.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
-        <i class="fas fa-user-friends w-6 text-center mr-3"></i> Pengelolaan Member
+      <a href="pglmember.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
+        <i class="fas fa-user-friends w-6 text-center mr-3"></i>
+        Pengelolaan Member
       </a>
       <a href="kelola_peminjaman.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
-        <i class="fas fa-clock w-6 text-center mr-3"></i> Kelola Peminjaman
+        <i class="fas fa-clock w-6 text-center mr-3"></i>
+        Kelola Peminjaman
       </a>
       <a href="kelola_pengembalian.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
-        <i class="fas fa-exchange-alt w-6 text-center mr-3"></i> Kelola Pengembalian
+        <i class="fas fa-exchange-alt w-6 text-center mr-3"></i>
+        Kelola Pengembalian
       </a>
-      <a href="kelola_denda.php" class="flex items-center px-4 py-3 bg-brandDark text-white rounded-lg shadow-md">
-        <i class="fas fa-exclamation-circle w-6 text-center mr-3"></i> Kelola Denda
+      <a href="#" class="flex items-center px-4 py-3 bg-brandDark text-white rounded-lg">
+        <i class="fas fa-exclamation-circle w-6 text-center mr-3"></i>
+        Kelola Denda
       </a>
       <a href="laporan.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
-        <i class="fas fa-clipboard-list w-6 text-center mr-3"></i> Laporan
+        <i class="fas fa-clipboard-list w-6 text-center mr-3"></i>
+        Laporan
       </a>
+
       <div class="pt-8">
         <a href="logout.php" class="flex items-center px-4 py-3 text-black hover:bg-white hover:bg-opacity-40 rounded-lg transition-colors">
-          <i class="fas fa-sign-out-alt w-6 text-center mr-3"></i> Log Out
+          <i class="fas fa-sign-out-alt w-6 text-center mr-3"></i>
+          Log Out
         </a>
       </div>
     </nav>
@@ -283,7 +295,12 @@ if (isset($_GET['edit'])) {
             </div>
             <div>
               <label class="block text-xs font-bold text-brandDark mb-1 uppercase">Jumlah Denda (Rp) *</label>
-              <input type="number" name="jumlah_denda" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brandDark focus:outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" value="<?php echo $editData['denda']; ?>" min="0" required>
+              <input type="number"
+                name="jumlah_denda"
+                class="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-brandDark focus:outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark"
+                value="<?= $editData['denda'] ?? 0 ?>"
+                min="0"
+                required>
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Buku di Pinjam</label>
@@ -296,8 +313,8 @@ if (isset($_GET['edit'])) {
             <div>
               <label class="block text-xs font-bold text-brandDark mb-1 uppercase">Status Pembayaran *</label>
               <select name="status_denda" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none focus:border-brandDark bg-white">
-                <option value="belum dibayar" <?php echo $editData['status_denda'] == 'belum dibayar' ? 'selected' : ''; ?>>Belum Dibayar</option>
-                <option value="lunas" <?php echo $editData['status_denda'] == 'lunas' ? 'selected' : ''; ?>>Lunas</option>
+                <option value="belum dibayar" <?php echo ($editData['status_denda'] ?? '') == 'belum dibayar' ? 'selected' : ''; ?>>Belum Dibayar</option>
+                <option value="lunas" <?php echo ($editData['status_denda'] ?? '') == 'lunas' ? 'selected' : ''; ?>>Lunas</option>
               </select>
             </div>
 

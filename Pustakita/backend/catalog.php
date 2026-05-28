@@ -17,6 +17,7 @@ if (isset($_GET['q'])) {
 }
 $resultBuku = mysqli_query($koneksi, $queryBuku);
 
+// Fetch user's favorited books to check which ones are already favorited
 $favorit_array = [];
 $queryFavorit = mysqli_query($koneksi, "SELECT id_buku FROM favorit WHERE id_siswa = $id_siswa");
 if ($queryFavorit) {
@@ -42,7 +43,7 @@ if ($queryFavorit) {
     .catalog-title {
         font-size: 24px;
         font-weight: 800;
-        color: #04005c;
+        color: #04005c; /* var(--blue) fallback */
         margin-bottom: 20px;
     }
     .catalog-grid {
@@ -205,33 +206,24 @@ if ($queryFavorit) {
             'linear-gradient(135deg,#0c4a6e,#0284c7)'
         ];
         $j = 0;
-
-        // ✅ FIX: Path cover disesuaikan relatif dari folder backend/
-        $cover_base = 'admin case/uploads/covers/';
-
         if (mysqli_num_rows($resultBuku) > 0) {
             while ($row = mysqli_fetch_assoc($resultBuku)) {
                 $grad = $gradients[$j % count($gradients)];
                 $is_favorited = in_array($row['id_buku'], $favorit_array);
                 $heart_class = $is_favorited ? 'btn-love favorited' : 'btn-love';
-
-                // ✅ FIX: Bangun full path cover
-                $cover_path = !empty($row['foto']) ? $cover_base . $row['foto'] : null;
-
+                
                 echo '<div class="book-card">';
                 echo '  <a href="favorit.php?add=' . $row['id_buku'] . '" class="' . $heart_class . '" title="Tambahkan ke Favorit">';
                 echo '    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
                 echo '  </a>';
-
+                
                 echo '  <div class="book-cover" style="background:' . $grad . '; padding: 0; overflow: hidden;">';
-                if ($cover_path) {
-                    // ✅ FIX: Gunakan $cover_path yang sudah lengkap
-                    echo '    <img src="' . htmlspecialchars($cover_path) . '" alt="Cover" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">';
+                if (!empty($row['foto'])) {
+                    echo '    <img src="' . htmlspecialchars($row['foto']) . '" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">';
                 } else {
-                    echo '    <span style="opacity:0.8;text-align:center;padding:10px;">' . htmlspecialchars($row['judul']) . '</span>';
+                    echo '    <span style="opacity:0.8; text-align:center; padding: 10px;">' . htmlspecialchars($row['judul']) . '</span>';
                 }
                 echo '  </div>';
-
                 echo '  <div class="book-title">' . htmlspecialchars($row['judul']) . '</div>';
                 echo '  <div class="book-author">' . htmlspecialchars($row['penulis']) . '</div>';
                 if (!empty($row['nama_kategori'])) {

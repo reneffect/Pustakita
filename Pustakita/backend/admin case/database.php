@@ -1,22 +1,14 @@
 <?php
-// ==========================================
-// KONEKSI DATABASE
-// ==========================================
-$host   = "localhost";
-$user   = "root";
-$pass   = "";
+$host = "localhost";
+$user = "root";
+$pass = "";
 $dbname = "pustakita";
 
-// Konek ke MySQL dulu tanpa pilih database
-$conn = new mysqli($host, $user, $pass);
+$conn = mysqli_connect($host, $user, $pass, $dbname);
 
-if ($conn->connect_error) {
-    die("Koneksi MySQL gagal: " . $conn->connect_error);
+if (!$conn) {
+    die("Koneksi ke database gagal: " . mysqli_connect_error());
 }
 
-// Buat database otomatis kalau belum ada
-$conn->query("CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-
-// Pilih database
-$conn->select_db($dbname);
-$conn->set_charset("utf8mb4");
+// Set charset ke UTF-8
+mysqli_set_charset($conn, "utf8mb4");

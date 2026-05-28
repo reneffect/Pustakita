@@ -791,3 +791,23 @@ footer {
   .loan-grid { grid-template-columns: 1fr; }
   .profile-cta { grid-template-columns: 1fr; }
 }
+
+.kategori-bg {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+}
+
+.cat-cerita {
+  background-image: url('cerita_rakyat.jpeg');
+}
+
+.cat-pelajaran {
+  background-image: url('buku_paket.jpeg');
+}
+
+.cat-novel {
+  background-image: url('novel.jpeg');
+}
